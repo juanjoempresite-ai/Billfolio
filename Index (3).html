@@ -1,0 +1,3037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billfolio — Cuentas de cobro y contratos para freelancers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --ink:#0F172A;
+  --ink-soft:#64748B;
+  --paper:#F8FAFC;
+  --paper-raised:#FFFFFF;
+  --rule:#E2E8F0;
+  --forest:#1D4ED8;
+  --forest-light:#2563EB;
+  --forest-deep:#1E3A8A;
+  --brass:#C9A227;
+  --brass-light:#E3C15C;
+  --brass-deep:#9C7B1E;
+  --danger:#B3423A;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+}
+*{box-sizing:border-box;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:#F1F5F9;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:#94A3B8;}
+body{
+  margin:0;
+  font-family:'IBM Plex Sans',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+}
+.app{display:flex;min-height:100vh;}
+.font-display{font-family:'Fraunces',serif;}
+.font-mono{font-family:'IBM Plex Mono',monospace;}
+
+/* SIDEBAR — deep charcoal accent against the slate-white canvas */
+.sidebar{
+  width:230px;
+  background:var(--forest-deep);
+  color:#E7EBF1;
+  flex-shrink:0;
+  padding:28px 18px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  height:100vh;
+}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:34px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:6px;
+  background:linear-gradient(155deg,var(--brass-light),var(--brass-deep));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:700;color:#2A2107;font-size:16px;
+}
+.brand-name{font-family:'Fraunces',serif;font-weight:600;font-size:18px;letter-spacing:.2px;}
+.brand-tag{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#8393A8;margin-top:1px;}
+nav.nav{display:flex;flex-direction:column;gap:4px;}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:8px;border:none;background:transparent;
+  color:#A9B6C6;font-size:13px;font-weight:500;text-align:left;cursor:pointer;
+  transition:background .15s ease,color .15s ease,transform .1s ease,box-shadow .15s ease;
+  transform:translateY(0);
+}
+.nav-btn:hover{background:rgba(255,255,255,.06);color:#F0F3F7;transform:translateY(-1px);}
+.nav-btn:active{transform:translateY(1px);}
+.nav-btn.active{
+  background:linear-gradient(180deg, rgba(227,193,92,.18), rgba(156,123,30,.1));
+  color:#F0DA9C;
+  box-shadow:inset 2px 0 0 var(--brass-light), inset 0 1px 0 rgba(255,255,255,.06), 0 3px 10px -4px rgba(0,0,0,.4);
+}
+.nav-ico{font-size:15px;width:18px;text-align:center;}
+.sidebar-foot{font-size:10px;color:#6B7B8F;letter-spacing:.5px;line-height:1.6;}
+.sidebar-foot strong{color:#96A6B9;}
+
+/* MAIN */
+main{flex:1;padding:36px 40px 80px;max-width:920px;}
+.view{display:none;}
+.view.active{display:block;}
+.eyebrow{
+  font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--forest);
+  font-weight:600;margin-bottom:8px;
+}
+h1.page-title{font-family:'Fraunces',serif;font-size:28px;font-weight:600;margin:0 0 6px;}
+.page-sub{color:var(--ink-soft);font-size:13.5px;line-height:1.6;max-width:560px;margin:0 0 28px;}
+
+.card{
+  background:var(--paper-raised);
+  border:1px solid var(--rule);
+  border-radius:var(--radius);
+  padding:26px;
+  box-shadow:var(--shadow);
+  margin-bottom:22px;
+}
+.card-ruled{
+  background-image:repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(35,57,93,.05) 28px);
+}
+label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.2px;}
+input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],textarea,select{
+  width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:7px;
+  background:#FBFCFD;color:var(--ink);font-size:13.5px;font-family:inherit;outline:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+input::placeholder,textarea::placeholder{color:#9AA6B4;}
+input:focus,textarea:focus,select:focus{border-color:var(--forest-light);box-shadow:0 0 0 3px rgba(58,90,140,.12);}
+textarea{resize:vertical;min-height:70px;}
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.no-spinner{-moz-appearance:textfield;}
+.field{margin-bottom:16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+
+/* ===== BOTONES 3D — reposo / hover / presión ===== */
+button.btn{
+  position:relative;
+  font-family:inherit;font-weight:700;font-size:13px;border:none;border-radius:10px;
+  padding:12px 22px;cursor:pointer;letter-spacing:.1px;
+  transition:transform .1s cubic-bezier(.2,.8,.3,1), box-shadow .18s ease, filter .18s ease;
+  transform:translateY(0);
+}
+
+/* --- Primary (azul corporativo) --- */
+.btn-primary{
+  color:#F3F6FA;
+  background-image:linear-gradient(180deg, var(--forest-light) 0%, var(--forest) 55%, var(--forest-deep) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -3px 5px rgba(0,0,0,.2),
+    0 1px 1px rgba(21,38,64,.3),
+    0 8px 18px -6px rgba(21,38,64,.45);
+}
+.btn-primary:hover{
+  filter:brightness(1.08);
+  transform:translateY(-1.5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.3),
+    inset 0 -3px 5px rgba(0,0,0,.18),
+    0 2px 2px rgba(21,38,64,.3),
+    0 14px 24px -6px rgba(58,90,140,.45),
+    0 0 0 4px rgba(58,90,140,.14);
+}
+.btn-primary:active{
+  transform:translateY(2px);
+  filter:brightness(.94);
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.3),
+    inset 0 -1px 0 rgba(255,255,255,.1),
+    0 1px 1px rgba(21,38,64,.3);
+}
+
+/* --- Brass (destello dorado) --- */
+.btn-brass{
+  color:#3A2A0F;
+  background-image:linear-gradient(180deg, var(--brass-light) 0%, var(--brass) 55%, var(--brass-deep) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    inset 0 -3px 5px rgba(0,0,0,.16),
+    0 1px 1px rgba(140,105,52,.3),
+    0 8px 16px -6px rgba(156,123,30,.4);
+}
+.btn-brass:hover{
+  filter:brightness(1.06);
+  transform:translateY(-1.5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -3px 5px rgba(0,0,0,.14),
+    0 2px 2px rgba(140,105,52,.3),
+    0 14px 24px -6px rgba(227,193,92,.5),
+    0 0 0 4px rgba(201,162,39,.16);
+}
+.btn-brass:active{
+  transform:translateY(2px);
+  filter:brightness(.95);
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.24),
+    inset 0 -1px 0 rgba(255,255,255,.16),
+    0 1px 1px rgba(140,105,52,.3);
+}
+
+/* --- Ghost (secundario, sobre lienzo claro) --- */
+.btn-ghost{
+  background-image:linear-gradient(180deg, #FFFFFF 0%, #F2F4F7 100%);
+  color:var(--ink-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 1px 1px rgba(27,34,44,.05),
+    0 4px 12px -6px rgba(27,34,44,.18),
+    0 0 0 1px var(--rule);
+}
+.btn-ghost:hover{
+  color:var(--forest);
+  transform:translateY(-1.5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 2px 2px rgba(27,34,44,.06),
+    0 10px 20px -6px rgba(27,34,44,.16),
+    0 0 0 1.5px var(--forest-light);
+}
+.btn-ghost:active{
+  transform:translateY(2px);
+  box-shadow:
+    inset 0 2px 4px rgba(27,34,44,.1),
+    0 0 0 1px var(--rule);
+}
+
+.logo-drop{
+  display:flex;align-items:center;gap:14px;padding:14px;border:1.5px dashed var(--rule);
+  border-radius:9px;background:#FBFCFD;
+}
+.logo-preview{
+  width:56px;height:56px;border-radius:8px;background:var(--paper);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  border:1px solid var(--rule);flex-shrink:0;font-size:20px;color:#B7C0CB;
+}
+.logo-preview img{width:100%;height:100%;object-fit:cover;}
+
+.tabs{
+  display:flex;gap:6px;background:#EBEEF2;padding:4px;border-radius:11px;margin-bottom:22px;max-width:420px;
+  box-shadow:inset 0 1px 3px rgba(27,34,44,.08);
+}
+.tab-btn{
+  flex:1;padding:9px 10px;border:none;border-radius:8px;background:transparent;
+  font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+  transition:all .15s ease;transform:translateY(0);
+}
+.tab-btn:hover{color:var(--forest);}
+.tab-btn:active{transform:translateY(1px);}
+.tab-btn.active{
+  background-image:linear-gradient(180deg,#FFFFFF,#F5F7FA);
+  color:var(--forest);
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 3px 10px -3px rgba(27,34,44,.2), 0 0 0 1px var(--rule);
+  transform:translateY(-1px);
+}
+
+/* Document preview — clean professional table style (per accountant/client reference) */
+.ledger-sheet{
+  background:#FFFFFF;
+  border:1px solid var(--rule);
+  border-radius:10px;
+  padding:32px 34px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+.doc-header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;}
+.doc-avatar{
+  width:64px;height:64px;border-radius:12px;background:var(--forest-deep);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;overflow:hidden;flex-shrink:0;
+}
+.doc-avatar.circle{border-radius:50%;}
+.doc-avatar img{width:100%;height:100%;object-fit:cover;}
+.doc-biz-name{font-weight:700;font-size:17px;margin-top:2px;}
+.doc-biz-meta{font-size:11px;color:var(--ink-soft);line-height:1.7;margin-top:2px;}
+.doc-type-pill{
+  display:inline-block;background:#DCFCE7;color:#166534;font-size:9.5px;font-weight:700;
+  letter-spacing:.5px;padding:4px 11px;border-radius:20px;text-transform:uppercase;
+}
+.doc-type-pill.contrato{background:#E0EAFB;color:var(--forest-deep);}
+.doc-type-pill.cotizacion{background:#FDF1D6;color:var(--brass-deep);}
+.doc-number{font-size:21px;font-weight:800;text-align:right;margin-top:8px;}
+.doc-dates{font-size:11px;text-align:right;color:var(--ink-soft);margin-top:8px;line-height:1.8;}
+.doc-dates strong{color:var(--ink);}
+.ledger-divider{border:none;border-top:1px solid var(--rule);margin:20px 0;}
+
+.doc-section-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:700;margin-bottom:7px;}
+.doc-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.doc-client-name{font-weight:700;font-size:13.5px;}
+.doc-contract-title{font-weight:800;font-size:16px;letter-spacing:.2px;margin:4px 0 8px;color:var(--ink);}
+.doc-pay-box{background:#F3F5F8;border-radius:8px;padding:12px 14px;}
+.doc-pay-box .bank{font-weight:700;font-size:13px;}
+.doc-pay-box .acct{font-size:12px;margin-top:2px;}
+.doc-pay-box .meta{font-size:10px;color:var(--ink-soft);margin-top:5px;line-height:1.5;}
+
+.doc-items-table{width:100%;border-collapse:collapse;margin-bottom:18px;}
+.doc-items-table thead th{background:#F3F5F8;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);text-align:left;padding:9px 10px;font-weight:700;}
+.doc-items-table thead th:last-child, .doc-items-table td:last-child{text-align:right;}
+.doc-items-table thead th:nth-child(2), .doc-items-table td:nth-child(2){text-align:center;}
+.doc-items-table thead th:nth-child(3), .doc-items-table td:nth-child(3){text-align:right;}
+.doc-items-table td{padding:11px 10px;font-size:12.5px;border-bottom:1px solid var(--rule);}
+.doc-items-table td:first-child{font-weight:500;}
+.doc-items-table td:last-child{font-weight:700;}
+
+.doc-footer-row{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.doc-notes-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);font-weight:700;margin-bottom:6px;}
+.doc-notes{max-width:250px;font-size:11px;color:var(--ink-soft);line-height:1.6;}
+.doc-totals{text-align:right;flex-shrink:0;}
+.doc-subtotal-row{font-size:13.5px;font-weight:700;color:var(--ink-soft);margin-bottom:10px;}
+.doc-subtotal-row strong{font-size:15px;}
+.doc-subtotal-row strong{color:var(--ink);font-family:'IBM Plex Mono',monospace;}
+.doc-total-row{white-space:nowrap;}
+.doc-total-label{font-weight:800;font-size:13.5px;}
+.doc-total-value{font-weight:800;font-size:21px;font-family:'IBM Plex Mono',monospace;color:var(--forest-deep);}
+.doc-son-pill{
+  display:inline-block;background:#F3F5F8;color:var(--ink-soft);font-size:9px;font-weight:700;
+  letter-spacing:.3px;padding:5px 10px;border-radius:6px;margin-top:9px;text-transform:uppercase;
+}
+.ledger-body-text{font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;margin:14px 0;}
+
+.doc-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+
+.hist-item{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--rule);font-size:12.5px;
+}
+.hist-item:last-child{border-bottom:none;}
+.hist-main{display:flex;flex-direction:column;gap:2px;}
+.hist-client{font-weight:600;}
+.hist-meta{color:var(--ink-soft);font-size:11px;}
+.hist-amount{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--forest-deep);}
+.pill{
+  font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;
+  padding:3px 8px;border-radius:20px;
+}
+.pill-cobro{background:rgba(35,57,93,.09);color:var(--forest);}
+.pill-contrato{background:rgba(201,162,39,.14);color:var(--brass-deep);}
+.pill-cotizacion{background:rgba(15,118,110,.14);color:#0f766e;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px;}
+@media(max-width:700px){.stat-grid{grid-template-columns:1fr;}}
+.stat-card{background:var(--paper-raised);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+.stat-label{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:600;margin-bottom:6px;}
+.stat-value{font-family:'Fraunces',serif;font-size:24px;font-weight:600;}
+.stat-delta{font-size:11px;margin-top:4px;font-weight:600;}
+.delta-up{color:var(--forest);}
+.delta-down{color:var(--danger);}
+
+.empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;}
+
+.toast{
+  position:fixed;bottom:24px;right:24px;background:var(--forest-deep);color:#F0DA9C;
+  padding:13px 18px;border-radius:9px;font-size:12.5px;box-shadow:var(--shadow);
+  border:1px solid var(--brass-deep);
+  display:flex;align-items:center;gap:8px;transform:translateY(20px);opacity:0;
+  transition:all .35s ease;pointer-events:none;z-index:99;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+.note{
+  font-size:11.5px;color:var(--ink-soft);background:rgba(35,57,93,.06);
+  border-left:3px solid var(--forest-light);padding:10px 14px;border-radius:0 6px 6px 0;line-height:1.6;
+}
+
+.backup-banner{
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(180deg,#FBF3DE,#F5E9C7);
+  border:1px solid var(--brass-deep);
+  border-radius:10px;
+  padding:12px 16px;
+  margin-bottom:22px;
+  box-shadow:var(--shadow);
+}
+.backup-banner-icon{font-size:16px;flex-shrink:0;}
+.backup-banner-text{font-size:12px;color:#5C4A1A;flex:1;line-height:1.5;}
+.backup-banner-close{cursor:pointer;color:#8C6E1E;font-size:14px;padding:4px;flex-shrink:0;}
+.backup-banner-close:hover{color:#3A2A0F;}
+@media(max-width:640px){.backup-banner{flex-wrap:wrap;}}
+
+/* ===== MODAL DE VISTA PREVIA ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.55);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:40px 20px;overflow-y:auto;z-index:200;
+}
+.modal-content{
+  background:var(--paper);
+  border-radius:14px;
+  padding:22px;
+  max-width:560px;
+  width:100%;
+  box-shadow:0 24px 60px -12px rgba(15,23,42,.4);
+}
+
+/* ===== RESPONSIVE — móvil y tablet ===== */
+.mobile-topbar{ display:none; }
+.sidebar-close{ display:none; }
+.sidebar-backdrop{ display:none; }
+
+@media(max-width:820px){
+  html, body{ overflow-x:hidden; width:100%; }
+  .app{ display:block; }
+
+  .mobile-topbar{
+    display:flex; align-items:center; gap:12px;
+    position:fixed; top:0; left:0; right:0; z-index:160;
+    background:var(--forest-deep); color:#fff;
+    padding:14px 16px;
+    box-sizing:border-box;
+  }
+  .mobile-topbar button{ background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:2px 4px;line-height:1;}
+  .mobile-topbar .brand-name{ font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:#fff;margin:0;}
+
+  .sidebar-backdrop{
+    display:none;
+    position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:240;
+  }
+  .sidebar-backdrop.open{ display:block; }
+
+  .sidebar{
+    position:fixed; top:0; left:0; height:100vh; width:250px;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    z-index:250;
+    padding:22px 18px;
+  }
+  .sidebar.open{ transform:translateX(0); box-shadow:0 0 40px rgba(0,0,0,.35); }
+  .sidebar .brand{ position:relative; }
+  .sidebar-close{
+    display:block; position:absolute; right:0; top:0;
+    background:none;border:none;color:#8393A8;font-size:16px;cursor:pointer;padding:4px;
+  }
+  .nav-btn{ font-size:13px; justify-content:flex-start; width:100%; padding:11px 12px; }
+  .nav-btn .nav-ico{ font-size:15px; }
+
+  main{ padding:70px 14px 70px; width:100%; min-width:0; box-sizing:border-box; }
+  .page-sub{ max-width:100%; }
+  .card{ padding:16px; }
+  h1.page-title{ font-size:21px; }
+  .stat-grid{ grid-template-columns:1fr; }
+  .doc-two-col{ grid-template-columns:1fr; }
+  .doc-header-row{ flex-direction:column; gap:14px; }
+  .doc-header-row > div:last-child{ text-align:left; }
+  .doc-number{ text-align:left; }
+  .doc-dates{ text-align:left; }
+  .modal-content{ padding:14px; max-width:100%; }
+  .modal-overlay{ padding:14px; }
+  .ledger-sheet{ padding:16px; overflow-x:auto; }
+  .doc-items-table{ font-size:11px; }
+  .backup-banner{ margin-bottom:16px; }
+  .tabs{ max-width:100%; }
+
+  /* Tablas y bloques anchos: scroll horizontal contenido, sin mover el layout */
+  .doc-items-table, #items-table-wrap table{ min-width:460px; }
+  #items-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .ledger-sheet table{ min-width:440px; }
+}
+@media(max-width:480px){
+  .doc-items-table thead th:nth-child(3), .doc-items-table td:nth-child(3){ display:none; }
+}
+
+/* ============ LOGIN / SESIÓN ============ */
+#auth-screen{
+  position:fixed; inset:0; z-index:500;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--paper); padding:24px;
+}
+#auth-screen.hidden{ display:none; }
+.auth-card{
+  width:100%; max-width:380px;
+  background:var(--paper-raised);
+  border:1px solid var(--rule);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:32px 28px;
+  text-align:center;
+}
+.auth-card .brand-mark{
+  width:48px;height:48px;border-radius:12px;
+  background:var(--forest); color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif; font-weight:700; font-size:22px;
+  margin:0 auto 14px;
+}
+.auth-card h1{ font-family:'Fraunces',serif; font-size:22px; margin:0 0 6px; }
+.auth-card p{ color:var(--ink-soft); font-size:13.5px; margin:0 0 20px; line-height:1.5; }
+.auth-card input[type="email"]{
+  width:100%; padding:12px 14px; border:1px solid var(--rule); border-radius:8px;
+  font-size:14px; margin-bottom:12px; font-family:inherit;
+}
+.auth-card .btn{ width:100%; padding:12px; font-size:14px; }
+#auth-message{ margin-top:14px; font-size:13px; line-height:1.5; }
+#auth-message.success{ color:var(--forest); }
+#auth-message.error{ color:var(--danger); }
+#auth-loading{
+  position:fixed; inset:0; z-index:600;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--paper); color:var(--ink-soft); font-size:14px;
+}
+#auth-loading.hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<div id="auth-loading">Cargando Billfolio…</div>
+
+<div id="auth-screen" class="hidden">
+  <div class="auth-card">
+    <div class="brand-mark">B</div>
+    <h1>Billfolio</h1>
+    <p>Ingresa tu correo y te enviamos un enlace para entrar — sin contraseñas.</p>
+    <input type="email" id="auth-email" placeholder="tu@correo.com" autocomplete="email">
+    <button class="btn btn-brass" onclick="sendMagicLink()" id="auth-send-btn">Enviarme el enlace</button>
+    <div id="auth-message"></div>
+  </div>
+</div>
+
+<div class="app" id="app-shell" style="display:none;">
+  <div class="mobile-topbar">
+    <button onclick="toggleSidebar(true)" aria-label="Abrir menú">☰</button>
+    <span class="brand-name">Billfolio</span>
+  </div>
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+  <aside class="sidebar" id="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-mark">B</div>
+        <div>
+          <div class="brand-name">Billfolio</div>
+          <div class="brand-tag">Local Ledger</div>
+        </div>
+        <button class="sidebar-close" onclick="toggleSidebar(false)" aria-label="Cerrar menú">✕</button>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="setup" onclick="goTo('setup')"><span class="nav-ico">🏷️</span><span class="nav-label">Configuración</span></button>
+        <button class="nav-btn" data-view="generar" onclick="goTo('generar')"><span class="nav-ico">🧾</span><span class="nav-label">Generar documento</span></button>
+        <button class="nav-btn" data-view="historial" onclick="goTo('historial')"><span class="nav-ico">📚</span><span class="nav-label">Historial</span></button>
+        <button class="nav-btn" data-view="informes" onclick="goTo('informes')"><span class="nav-ico">📊</span><span class="nav-label">Informes</span></button>
+        <button class="nav-btn" data-view="respaldo" onclick="goTo('respaldo')"><span class="nav-ico">💾</span><span class="nav-label">Respaldo</span></button>
+      </nav>
+    </div>
+    <div class="sidebar-foot">
+      <strong>Guardado en la nube.</strong><br>Tu información se sincroniza<br>en todos tus dispositivos.
+      <div id="auth-user-email" style="margin-top:8px;font-size:11px;opacity:.8;word-break:break-all;"></div>
+      <button class="btn" style="margin-top:10px;width:100%;padding:8px;font-size:12px;background:transparent;border:1px solid rgba(255,255,255,.3);color:inherit;" onclick="signOutUser()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main>
+
+    <div id="backup-reminder" class="backup-banner" style="display:none;">
+      <span class="backup-banner-icon">💾</span>
+      <span class="backup-banner-text">No has exportado un respaldo hace tiempo. Si algo le pasa a este navegador, pierdes tu historial — tú tienes el control, así que solo tú puedes protegerlo.</span>
+      <button class="btn btn-brass" style="padding:8px 14px;font-size:11.5px;flex-shrink:0;" onclick="goTo('respaldo')">Ir a respaldo</button>
+      <span class="backup-banner-close" onclick="snoozeBackupReminder()">✕</span>
+    </div>
+
+    <!-- VIEW: SETUP -->
+    <section id="view-setup" class="view active">
+      <div class="eyebrow">Paso único</div>
+      <h1 class="page-title">Configura tu negocio</h1>
+      <p class="page-sub">Estos datos se guardan en este dispositivo y se usan automáticamente en cada documento que generes. No los vuelves a escribir.</p>
+
+      <div class="card">
+        <div class="field">
+          <label>Logo de tu negocio</label>
+          <div class="logo-drop">
+            <div class="logo-preview" id="logo-preview">🖼️</div>
+            <div style="flex:1;">
+              <input type="file" id="logo-input" accept="image/*" onchange="handleLogoUpload(event)">
+              <div style="font-size:10.5px;color:var(--ink-soft);margin-top:6px;">Se recorta al centro automáticamente — puedes ajustarlo abajo.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px;">
+            <div style="max-width:220px;">
+              <label style="font-size:10.5px;">Forma del logo</label>
+              <select id="logo-shape" onchange="onLogoShapeChange()">
+                <option value="circle">Circular (como redes sociales)</option>
+                <option value="square">Cuadrado</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-ghost" style="padding:9px 14px;font-size:11px;" onclick="openCropModal()">🔧 Personalizar recorte</button>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Nombre completo o razón social</label>
+            <input type="text" id="biz-name" placeholder="Ej: Camila Rojas">
+          </div>
+          <div class="field">
+            <label>Número de identificación</label>
+            <input type="text" id="biz-id" placeholder="Ej: 1020304050">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Actividad económica (opcional)</label>
+            <input type="text" id="biz-activity" placeholder="Ej: Diseño gráfico, consultoría, comercio">
+            <div class="note" style="margin-top:8px;">Muchas empresas piden conocer tu actividad económica registrada antes de poder pagarte. Verifica los requisitos específicos de tu país.</div>
+          </div>
+          <div class="field">
+            <label>País</label>
+            <select id="biz-country" onchange="onCountryChange()">
+              <option value="">Selecciona tu país...</option>
+              <option value="Colombia">Colombia</option>
+              <option value="México">México</option>
+              <option value="Argentina">Argentina</option>
+              <option value="Chile">Chile</option>
+              <option value="Perú">Perú</option>
+              <option value="Ecuador">Ecuador</option>
+              <option value="Panamá">Panamá</option>
+              <option value="Venezuela">Venezuela</option>
+              <option value="Guatemala">Guatemala</option>
+              <option value="Honduras">Honduras</option>
+              <option value="Nicaragua">Nicaragua</option>
+              <option value="Costa Rica">Costa Rica</option>
+              <option value="El Salvador">El Salvador</option>
+              <option value="República Dominicana">República Dominicana</option>
+              <option value="Bolivia">Bolivia</option>
+              <option value="Paraguay">Paraguay</option>
+              <option value="Uruguay">Uruguay</option>
+              <option value="España">España</option>
+              <option value="Estados Unidos">Estados Unidos</option>
+              <option value="Otro">Otro (personalizar moneda)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2" id="custom-currency-row" style="display:none;">
+          <div class="field">
+            <label>Símbolo de tu moneda</label>
+            <input type="text" id="biz-currency-symbol" placeholder="Ej: $, €, S/, Bs.">
+          </div>
+          <div class="field">
+            <label>Nombre de tu moneda</label>
+            <input type="text" id="biz-currency-word" placeholder="Ej: pesos, dólares, soles">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Teléfono</label>
+            <input type="tel" id="biz-phone" placeholder="Ej: 300 123 4567">
+          </div>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <input type="email" id="biz-email" placeholder="Ej: hola@tunegocio.com">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Ciudad</label>
+            <input type="text" id="biz-city" placeholder="Ej: Bogotá">
+          </div>
+          <div class="field">
+            <label>Dirección (opcional)</label>
+            <input type="text" id="biz-address" placeholder="Ej: Calle 45 # 12-34">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveBusiness()">Guardar configuración</button>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="margin-bottom:0;">Métodos de pago aceptados</label>
+          <button id="add-payment-btn" class="btn btn-ghost" style="padding:8px 14px;font-size:11.5px;" onclick="togglePaymentForm()">+ Agregar método</button>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 14px;">Este es el dato que tu cliente necesita para pagarte, así que va completo — igual que cuando compartes tu número de cuenta por WhatsApp para que te transfieran.</p>
+
+        <div id="payment-methods-list" style="margin-bottom:14px;"></div>
+
+        <div id="payment-form" class="field" style="display:none;background:var(--paper);border:1px solid var(--rule);border-radius:9px;padding:16px;">
+          <div class="grid2">
+            <div class="field">
+              <label>Tipo</label>
+              <select id="pm-type" onchange="onPmTypeChange()">
+                <option value="Cuenta bancaria">Cuenta bancaria</option>
+                <option value="Billetera virtual">Billetera virtual</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div class="field" id="pm-subtype-field" style="display:none;">
+              <label>Tipo de cuenta</label>
+              <select id="pm-subtype">
+                <option value="Ahorros">Ahorros</option>
+                <option value="Corriente">Corriente</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label>Banco / Entidad</label>
+              <input type="text" id="pm-entity" placeholder="Ej: nombre de tu banco o billetera virtual">
+            </div>
+            <div class="field">
+              <label>Alias (opcional)</label>
+              <input type="text" id="pm-alias" placeholder="Ej: Cuenta principal">
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label>Nombre de quien recibe</label>
+              <input type="text" id="pm-holder" placeholder="Nombre completo del titular de la cuenta">
+            </div>
+            <div class="field">
+              <label>Número de cuenta o celular</label>
+              <input type="text" id="pm-last-digits" placeholder="Ej: 0123456789 o 300 123 4567">
+            </div>
+          </div>
+          <button class="btn btn-brass" style="padding:9px 16px;font-size:12px;" onclick="addPaymentMethod()">Guardar método</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>Firma</label>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:6px 0 14px;">Se usa cuando agregues la firma a tus documentos. El nombre y la identificación se toman de los datos de tu negocio de arriba.</p>
+        <div id="signature-preview" style="margin-bottom:16px;"></div>
+
+        <div style="margin-bottom:18px;">
+          <label style="font-size:11px;font-weight:700;">Opción 1 — Subir fotografía o escaneo</label>
+          <input type="file" id="signature-input" accept="image/*" onchange="handleSignatureUpload(event)" style="margin-top:6px;">
+        </div>
+
+        <div>
+          <label style="font-size:11px;font-weight:700;">Opción 2 — Firmar digitalmente</label>
+          <div style="margin-top:6px;">
+            <canvas id="signature-canvas" width="400" height="150" style="width:100%;max-width:400px;height:150px;border:1.5px dashed var(--rule);border-radius:8px;background:#fff;touch-action:none;cursor:crosshair;display:block;"></canvas>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button type="button" class="btn btn-ghost" style="padding:8px 14px;font-size:11px;" onclick="clearSignatureCanvas()">Limpiar</button>
+              <button type="button" class="btn btn-brass" style="padding:8px 14px;font-size:11px;" onclick="saveDigitalSignature()">Guardar firma</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>Billfolio Pro</label>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:6px 0 14px;">La versión gratis incluye 5 cuentas de cobro, 5 contratos, 1 método de pago y tus últimos 5 documentos en el historial. Desbloquea generación ilimitada, métodos de pago ilimitados, historial completo e informes.</p>
+        <div id="license-status"></div>
+      </div>
+    </section>
+
+    <!-- VIEW: GENERAR -->
+    <section id="view-generar" class="view">
+      <div class="eyebrow">Módulo de generación</div>
+      <h1 class="page-title">Genera tu documento</h1>
+      <p class="page-sub">Completa los datos del cliente y del servicio. Se genera con tu logo y datos guardados, listo para descargar en PDF.</p>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-cotizacion" onclick="switchDocType('cotizacion')">Cotización</button>
+        <button class="tab-btn" id="tab-contrato" onclick="switchDocType('contrato')">Contrato de servicios</button>
+        <button class="tab-btn" id="tab-cobro" onclick="switchDocType('cobro')">Cuenta de cobro</button>
+      </div>
+      <div id="free-usage-banner" class="note" style="max-width:420px;margin:-10px 0 22px;display:none;"></div>
+
+      <div id="generar-grid">
+        <div class="card" id="form-card">
+          <div class="grid2">
+            <div class="field">
+              <label>Nombre del cliente</label>
+              <input type="text" id="doc-client-name" oninput="renderPreview()" placeholder="Ej: Café Aroma S.A.S.">
+            </div>
+            <div class="field">
+              <label>Identificación del cliente</label>
+              <input type="text" id="doc-client-id" oninput="renderPreview()" placeholder="Ej: número de identificación o identificación fiscal">
+            </div>
+          </div>
+
+          <div id="fields-linked-quote" style="display:none;">
+            <div class="field">
+              <label>¿Viene de una cotización? (opcional)</label>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="doc-link-quote" placeholder="Ej: COT-1003" style="flex:1;">
+                <button type="button" class="btn btn-ghost" style="flex-shrink:0;" onclick="loadFromQuote()">Cargar datos</button>
+              </div>
+              <div id="link-quote-status" style="font-size:10.5px;color:var(--ink-soft);margin-top:5px;"></div>
+            </div>
+          </div>
+
+          <div id="fields-items-shared">
+            <div class="field">
+              <label id="doc-concept-label">Concepto del cobro</label>
+              <textarea id="doc-concept" oninput="renderPreview()" placeholder="Ej: Servicios profesionales de diseño gráfico correspondientes al mes de julio de 2026" rows="2"></textarea>
+            </div>
+            <div class="field">
+              <label>Servicio o producto</label>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="doc-item-input" placeholder="Escribe el servicio o producto" onkeydown="handleItemKeydown(event)" style="flex:1;">
+                <button type="button" class="btn btn-brass" style="padding:0 18px;font-size:16px;flex-shrink:0;" onclick="addItem()">＋</button>
+              </div>
+            </div>
+
+            <div class="field" id="items-table-wrap" style="display:none;">
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead>
+                  <tr style="border-bottom:1.5px solid var(--rule);">
+                    <th style="text-align:left;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">#</th>
+                    <th style="text-align:left;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">Descripción</th>
+                    <th style="text-align:center;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;width:64px;">Cant.</th>
+                    <th style="text-align:right;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;width:110px;">V. unitario</th>
+                    <th style="text-align:right;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;width:110px;">V. total</th>
+                    <th style="width:28px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="items-tbody"></tbody>
+              </table>
+              <div style="display:flex;justify-content:flex-end;padding-top:10px;font-size:13px;font-weight:700;">
+                Total: <span id="items-grand-total" style="margin-left:8px;font-family:'IBM Plex Mono',monospace;">$0</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="fields-cotizacion-extra" style="display:none;">
+            <div class="grid2">
+              <div class="field">
+                <label>Validez de la oferta</label>
+                <input type="text" id="doc-quote-validity" oninput="renderPreview()" placeholder="Ej: 15 días">
+              </div>
+              <div class="field">
+                <label>Fecha de emisión</label>
+                <input type="date" id="doc-issue-date-q" oninput="renderPreview()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Notas u observaciones (opcional)</label>
+              <textarea id="doc-quote-notes" oninput="renderPreview()" placeholder="Ej: No incluye gastos de desplazamiento" rows="2"></textarea>
+            </div>
+          </div>
+
+          <div id="fields-cobro-extra">
+            <div class="grid2">
+              <div class="field">
+                <label>Método de pago</label>
+                <select id="doc-payment-method" onchange="handlePaymentMethodChange()">
+                  <option value="">Selecciona un método configurado...</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Fecha de emisión</label>
+                <input type="date" id="doc-issue-date" oninput="renderPreview()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Fecha límite de pago</label>
+              <input type="date" id="doc-due-date" oninput="renderPreview()">
+            </div>
+            <div class="field">
+              <label>Costo de este servicio (opcional)</label>
+              <input type="number" min="0" class="no-spinner" id="doc-cost" placeholder="Ej: 200000">
+              <div style="font-size:10.5px;color:var(--ink-soft);margin-top:5px;">Solo para tu control interno — se usa en Informes para calcular tu margen. <strong>No aparece en el PDF que le envías al cliente.</strong></div>
+            </div>
+          </div>
+
+          <div id="fields-contrato" style="display:none;">
+            <div class="field">
+              <label>Alcance del trabajo</label>
+              <textarea id="doc-scope" oninput="renderPreview()" placeholder="Describe el trabajo a realizar"></textarea>
+            </div>
+            <div class="field">
+              <label>Plazos de entrega</label>
+              <textarea id="doc-delivery" oninput="renderPreview()" placeholder="Ej: Entrega de bocetos en 5 días hábiles, versión final en 15 días"></textarea>
+            </div>
+            <div class="field">
+              <label>Condiciones de pago</label>
+              <textarea id="doc-pay-terms" oninput="renderPreview()" placeholder="Ej: 50% anticipo, 50% contra entrega"></textarea>
+            </div>
+            <div class="field">
+              <label>Cláusula de propiedad intelectual</label>
+              <textarea id="doc-ip" oninput="renderPreview()" placeholder="Ej: Los derechos se transfieren al cliente tras el pago total"></textarea>
+            </div>
+            <div class="field">
+              <label>Fecha</label>
+              <input type="date" id="doc-issue-date-c" oninput="renderPreview()">
+            </div>
+          </div>
+
+          <div class="doc-actions">
+            <button class="btn btn-ghost" onclick="openPreviewModal()">👁 Vista previa</button>
+            <button id="generate-save-btn" class="btn btn-primary" onclick="generateAndSave()">Generar y guardar</button>
+            <button class="btn btn-brass" onclick="downloadPdf()">Descargar PDF</button>
+            <button id="signature-toggle-btn" class="btn btn-ghost" onclick="toggleSignatureInclude()">🖊️ Agregar firma</button>
+            <button class="btn btn-ghost" onclick="newDocument()">＋ Nuevo documento</button>
+            <button id="cancel-edit-btn" class="btn btn-ghost" onclick="cancelEdit()" style="display:none;">✕ Cancelar edición</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL DE VISTA PREVIA — mismo contenido que el PDF descargado -->
+    <div id="preview-modal-overlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closePreviewModal()">
+      <div class="modal-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);">Vista previa del documento</span>
+          <button class="btn btn-ghost" style="padding:6px 12px;font-size:11px;" onclick="closePreviewModal()">✕ Cerrar</button>
+        </div>
+        <div class="ledger-sheet" id="ledger-preview"></div>
+        <div class="doc-actions">
+          <button class="btn btn-brass" onclick="downloadPdf()">Descargar PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE RECORTE PERSONALIZADO DEL LOGO -->
+    <div id="crop-modal-overlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeCropModal()">
+      <div class="modal-content" style="max-width:340px;text-align:center;">
+        <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);margin-bottom:14px;">Personaliza el recorte de tu logo</div>
+        <canvas id="crop-canvas" width="280" height="280" style="border-radius:10px;background:#E9EDF2;touch-action:none;cursor:grab;max-width:100%;"></canvas>
+        <p style="font-size:10.5px;color:var(--ink-soft);margin:10px 0 0;">Arrastra la imagen para centrarla, usa el control para acercar o alejar.</p>
+        <div style="margin:12px 0;">
+          <label style="font-size:10.5px;">Zoom</label>
+          <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" oninput="redrawCropCanvas()" style="width:100%;">
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button class="btn btn-ghost" onclick="closeCropModal()">Cancelar</button>
+          <button class="btn btn-brass" onclick="applyCustomCrop()">Aplicar recorte</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN / AVISO / ENTRADA DE TEXTO, PROPIO DE LA APP -->
+    <div id="confirm-modal-overlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeConfirmModal()">
+      <div class="modal-content" style="max-width:360px;">
+        <div id="confirm-modal-title" class="font-display" style="font-size:15px;font-weight:600;margin-bottom:10px;">Confirmar</div>
+        <p id="confirm-modal-message" style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 14px;white-space:pre-line;"></p>
+        <input type="text" id="confirm-modal-input" style="display:none;margin-bottom:16px;">
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="confirm-modal-cancel-btn" class="btn btn-ghost" onclick="closeConfirmModal()">Cancelar</button>
+          <button id="confirm-modal-accept-btn" class="btn btn-brass" onclick="confirmModalAccept()">Aceptar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: HISTORIAL -->
+    <section id="view-historial" class="view">
+      <div class="eyebrow">Registro local</div>
+      <h1 class="page-title">Historial de documentos</h1>
+      <p class="page-sub">Todo lo que has generado, guardado en este dispositivo.</p>
+      <div class="card" style="padding:6px 20px;" id="historial-list"></div>
+    </section>
+
+    <!-- VIEW: INFORMES -->
+    <section id="view-informes" class="view">
+      <div class="eyebrow">Panorama</div>
+      <h1 class="page-title">Informes de facturación</h1>
+      <p class="page-sub">Calculado automáticamente a partir de tu historial local. Nada se envía a ningún servidor.</p>
+
+      <div id="informes-lock" class="card" style="display:none;text-align:center;padding:44px 24px;">
+        <div style="font-size:28px;margin-bottom:10px;">🔒</div>
+        <h3 class="font-display" style="margin:0 0 8px;">Los informes son parte de Billfolio Pro</h3>
+        <p style="font-size:12.5px;color:var(--ink-soft);max-width:380px;margin:0 auto 18px;">Desbloquea el gráfico de facturación, el filtro de fechas y el cálculo de rentabilidad por documento.</p>
+        <button class="btn btn-brass" onclick="goTo('setup')">Desbloquear Billfolio Pro</button>
+      </div>
+
+      <div id="informes-content">
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="card" style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Desde</label>
+          <input type="date" id="report-from">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Hasta</label>
+          <input type="date" id="report-to">
+        </div>
+        <button class="btn btn-primary" style="padding:10px 18px;" onclick="renderInformes()">Aplicar filtro</button>
+      </div>
+
+      <div class="card">
+        <label style="margin-bottom:14px;" id="chart-title">Facturación en el periodo seleccionado</label>
+        <canvas id="reportChart" height="90"></canvas>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="margin-bottom:0;">Rentabilidad por documento</label>
+          <span style="font-size:10.5px;color:var(--ink-soft);">Agrega el costo de cada servicio para ver tu margen — es opcional</span>
+        </div>
+        <div id="profit-summary" style="font-size:12.5px;margin-bottom:10px;"></div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px;">
+            <thead>
+              <tr style="border-bottom:1.5px solid var(--rule);">
+                <th style="text-align:left;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">Cliente</th>
+                <th style="text-align:left;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">Fecha</th>
+                <th style="text-align:right;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">Ingreso</th>
+                <th style="text-align:right;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">Costo</th>
+                <th style="text-align:right;padding:6px 4px;color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;">Margen</th>
+              </tr>
+            </thead>
+            <tbody id="profit-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- VIEW: RESPALDO -->
+    <section id="view-respaldo" class="view">
+      <div class="eyebrow">Tu control, tu respaldo</div>
+      <h1 class="page-title">Exportar / Importar respaldo</h1>
+      <p class="page-sub">Como todo vive en este navegador, usa esto para llevar tu información a otro dispositivo o para no perderla nunca.</p>
+
+      <div class="card">
+        <h3 class="font-display" style="margin-top:0;">Exportar</h3>
+        <p style="font-size:12.5px;color:var(--ink-soft);">Descarga un archivo con tu configuración de negocio y todo tu historial de documentos.</p>
+        <button class="btn btn-brass" onclick="exportBackup()">Exportar respaldo</button>
+      </div>
+
+      <div class="card">
+        <h3 class="font-display" style="margin-top:0;">Importar</h3>
+        <p style="font-size:12.5px;color:var(--ink-soft);">Sube un archivo de respaldo exportado antes. Esto reemplaza la información actual de este dispositivo.</p>
+        <input type="file" id="import-input" accept="application/json" onchange="importBackup(event)">
+        <div class="note" style="margin-top:12px;">Importar un respaldo no sincroniza automáticamente tus dispositivos — es una acción manual que tú controlas cada vez que la necesitas.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast">✓ Guardado con éxito</div>
+
+<script>
+/* ============ SUPABASE ============ */
+// ⚠️ Reemplaza SUPABASE_URL con la URL de tu proyecto (Project Settings → API → Project URL)
+const SUPABASE_URL = 'https://ufbphhurnlqmqxfkzgbl.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_puSIbdGPgaGjnmmZsno9nA_8jGoVh0_';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+
+/* ============ AUTENTICACIÓN (enlace mágico) ============ */
+async function sendMagicLink(){
+  const emailInput = document.getElementById('auth-email');
+  const btn = document.getElementById('auth-send-btn');
+  const msg = document.getElementById('auth-message');
+  const email = (emailInput.value||'').trim();
+  msg.className = ''; msg.textContent = '';
+  if(!email || !email.includes('@')){
+    msg.className = 'error'; msg.textContent = 'Ingresa un correo válido.';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options:{ emailRedirectTo: window.location.origin + window.location.pathname }
+  });
+  btn.disabled = false; btn.textContent = 'Enviarme el enlace';
+  if(error){
+    msg.className = 'error';
+    msg.textContent = 'No pudimos enviar el enlace: ' + error.message;
+  } else {
+    msg.className = 'success';
+    msg.textContent = '✓ Te enviamos un enlace a ' + email + '. Ábrelo desde este mismo dispositivo para entrar.';
+  }
+}
+
+async function signOutUser(){
+  await supabaseClient.auth.signOut();
+  window.location.reload();
+}
+
+function showAuthScreen(){
+  document.getElementById('auth-loading').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('app-shell').style.display = 'none';
+}
+
+async function showAppShell(){
+  document.getElementById('auth-loading').classList.add('hidden');
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-shell').style.display = '';
+  const emailEl = document.getElementById('auth-user-email');
+  if(emailEl) emailEl.textContent = currentUser.email || '';
+}
+
+/* ============ CAPA DE ALMACENAMIENTO (Supabase) ============ */
+// Compatibilidad: se mantienen los nombres idbPut/idbGet/idbGetAll/idbClear
+// que usa el resto de la app, pero ahora hablan con Supabase en vez de IndexedDB.
+async function openDB(){
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  if(session && session.user){ currentUser = session.user; }
+  return currentUser;
+}
+
+async function idbPut(store, value){
+  if(!currentUser) return;
+  if(store === 'business'){
+    const { unlocked, ...rest } = value; // 'unlocked' es de solo lectura para el cliente
+    const { error } = await supabaseClient.from('business_profiles').upsert({
+      id: currentUser.id,
+      data: rest,
+      updated_at: new Date().toISOString()
+    });
+    if(error) console.error('Error guardando perfil:', error);
+    return;
+  }
+  if(store === 'documents'){
+    const { error } = await supabaseClient.from('documents').upsert({
+      id: String(value.id),
+      user_id: currentUser.id,
+      type: value.type || null,
+      voided: !!value.voided,
+      created_at: value.createdAt || new Date().toISOString(),
+      data: value
+    });
+    if(error) console.error('Error guardando documento:', error);
+    return;
+  }
+}
+
+async function idbGet(store, key){
+  if(!currentUser) return null;
+  if(store === 'business'){
+    const { data, error } = await supabaseClient.from('business_profiles')
+      .select('data, unlocked').eq('id', currentUser.id).maybeSingle();
+    if(error){ console.error('Error cargando perfil:', error); return null; }
+    if(!data) return null;
+    return { id:'profile', ...(data.data||{}), unlocked: !!data.unlocked };
+  }
+  return null;
+}
+
+async function idbGetAll(store){
+  if(!currentUser) return [];
+  if(store === 'documents'){
+    const { data, error } = await supabaseClient.from('documents')
+      .select('data').eq('user_id', currentUser.id);
+    if(error){ console.error('Error cargando documentos:', error); return []; }
+    return (data||[]).map(r=>r.data);
+  }
+  return [];
+}
+
+async function idbClear(store){
+  if(!currentUser) return;
+  if(store === 'documents'){
+    const { error } = await supabaseClient.from('documents').delete().eq('user_id', currentUser.id);
+    if(error) console.error('Error borrando documentos:', error);
+  }
+}
+
+/* ============ STATE ============ */
+let business = {id:'profile', name:'', taxId:'', phone:'', email:'', address:'', logo:null, paymentMethods:[], unlocked:false};
+let currentDocType = 'cotizacion';
+let allDocuments = [];
+let currentItems = [];
+let includeSignatureFlag = false;
+
+const COUNTRY_CURRENCY = {
+  'Colombia': {symbol:'$', word:'pesos'},
+  'México': {symbol:'$', word:'pesos'},
+  'Argentina': {symbol:'$', word:'pesos'},
+  'Chile': {symbol:'$', word:'pesos'},
+  'Perú': {symbol:'S/', word:'soles'},
+  'Ecuador': {symbol:'$', word:'dólares'},
+  'Panamá': {symbol:'$', word:'balboas'},
+  'Venezuela': {symbol:'Bs.', word:'bolívares'},
+  'Guatemala': {symbol:'Q', word:'quetzales'},
+  'Honduras': {symbol:'L', word:'lempiras'},
+  'Nicaragua': {symbol:'C$', word:'córdobas'},
+  'Costa Rica': {symbol:'₡', word:'colones'},
+  'El Salvador': {symbol:'$', word:'dólares'},
+  'República Dominicana': {symbol:'RD$', word:'pesos'},
+  'Bolivia': {symbol:'Bs.', word:'bolivianos'},
+  'Paraguay': {symbol:'₲', word:'guaraníes'},
+  'Uruguay': {symbol:'$', word:'pesos'},
+  'España': {symbol:'€', word:'euros'},
+  'Estados Unidos': {symbol:'$', word:'dólares'},
+};
+
+function onCountryChange(){
+  const country = document.getElementById('biz-country').value;
+  document.getElementById('custom-currency-row').style.display = (country==='Otro') ? 'grid' : 'none';
+}
+
+/* ============ LICENCIA / DESBLOQUEO ============ */
+function renderLicenseStatus(){
+  const el = document.getElementById('license-status');
+  if(!el) return;
+  if(business.unlocked){
+    el.innerHTML = '<div class="note" style="border-left-color:var(--forest);">✓ Billfolio Pro desbloqueado — tienes acceso completo.</div>';
+  } else {
+    el.innerHTML = '<div class="note">Para desbloquear Billfolio Pro sin límites, escríbenos y activamos tu cuenta apenas confirmemos el pago.</div>';
+  }
+}
+
+const FREE_DOC_LIMIT = 5;
+const FREE_LIMITS_BY_TYPE = { cobro: 5, contrato: 5, cotizacion: 10 };
+function freeLimitFor(type){ return FREE_LIMITS_BY_TYPE[type] != null ? FREE_LIMITS_BY_TYPE[type] : FREE_DOC_LIMIT; }
+function countDocsByType(type){
+  return allDocuments.filter(d=>d.type===type).length;
+}
+function docTypeLabel(type){
+  if(type==='cobro') return 'cuentas de cobro';
+  if(type==='cotizacion') return 'cotizaciones';
+  return 'contratos';
+}
+
+function applyUnlockRestrictions(){
+  const informesLock = document.getElementById('informes-lock');
+  const informesContent = document.getElementById('informes-content');
+  if(informesLock) informesLock.style.display = business.unlocked ? 'none' : 'block';
+  if(informesContent) informesContent.style.display = business.unlocked ? 'block' : 'none';
+
+  const addPmBtn = document.getElementById('add-payment-btn');
+  if(addPmBtn){
+    const atLimit = !business.unlocked && (business.paymentMethods||[]).length >= 1;
+    addPmBtn.style.display = atLimit ? 'none' : 'inline-block';
+  }
+
+  renderFreeUsageBanner();
+}
+
+function renderFreeUsageBanner(){
+  const banner = document.getElementById('free-usage-banner');
+  if(!banner) return;
+  if(business.unlocked){
+    banner.style.display = 'none';
+    return;
+  }
+  const limit = freeLimitFor(currentDocType);
+  const used = countDocsByType(currentDocType);
+  const remaining = Math.max(0, limit - used);
+  banner.style.display = 'block';
+  if(remaining > 0){
+    banner.innerHTML = 'Versión gratis: te quedan <strong>'+remaining+' de '+limit+'</strong> '+docTypeLabel(currentDocType)+' por generar.';
+  } else {
+    banner.innerHTML = '🔒 Ya generaste tus '+limit+' '+docTypeLabel(currentDocType)+' gratis. <span style="cursor:pointer;color:var(--forest);text-decoration:underline;" onclick="goTo(\'setup\')">Desbloquea Billfolio Pro</span> para seguir generando sin límite.';
+  }
+}
+
+/* ============ NAVIGATION ============ */
+function toggleSidebar(open){
+  document.getElementById('sidebar').classList.toggle('open', open);
+  document.getElementById('sidebar-backdrop').classList.toggle('open', open);
+}
+
+function goTo(viewId){
+  closePreviewModal();
+  toggleSidebar(false);
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+viewId).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===viewId));
+  if(viewId==='setup'){ renderPaymentMethodsList(); renderLicenseStatus(); }
+  if(viewId==='generar'){ populatePaymentMethodSelect(); renderFreeUsageBanner(); renderPreview(); }
+  if(viewId==='historial') renderHistorial();
+  if(viewId==='informes') renderInformes();
+}
+
+/* ============ SETUP ============ */
+function cropToSquareCanvas(img){
+  const size = 300;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const minSide = Math.min(img.width, img.height);
+  const sx = (img.width - minSide)/2, sy = (img.height - minSide)/2;
+  ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+  return canvas;
+}
+
+function computeAvgLuminance(canvas){
+  const ctx = canvas.getContext('2d');
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let total=0, count=0;
+  for(let i=0;i<data.length;i+=4*20){
+    total += 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+    count++;
+  }
+  return count ? total/count : 200;
+}
+
+function handleLogoUpload(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxRaw = 1000;
+      let rw=img.width, rh=img.height;
+      if(Math.max(rw,rh)>maxRaw){
+        if(rw>rh){ rh = rh*(maxRaw/rw); rw=maxRaw; } else { rw = rw*(maxRaw/rh); rh=maxRaw; }
+      }
+      const rawCanvas = document.createElement('canvas');
+      rawCanvas.width=rw; rawCanvas.height=rh;
+      rawCanvas.getContext('2d').drawImage(img,0,0,rw,rh);
+      business.logoRaw = rawCanvas.toDataURL('image/jpeg',0.9);
+
+      const squareCanvas = cropToSquareCanvas(img);
+      business.logoOriginal = squareCanvas.toDataURL('image/jpeg', 0.85);
+      business.logoWatermarkOpacity = computeAvgLuminance(squareCanvas) < 130 ? 0.035 : 0.09;
+      if(!business.logoShape) business.logoShape = 'circle';
+      const shapeSelect = document.getElementById('logo-shape');
+      if(shapeSelect) shapeSelect.value = business.logoShape;
+      applyLogoShape();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ============ RECORTE PERSONALIZADO ============ */
+let cropState = {img:null, scale:1, offsetX:0, offsetY:0};
+
+function openCropModal(){
+  if(!business.logoRaw){ appAlert('Primero sube una imagen de logo.'); return; }
+  const img = new Image();
+  img.onload = ()=>{
+    cropState = {img, scale:1, offsetX:0, offsetY:0};
+    document.getElementById('crop-zoom').value = 1;
+    document.getElementById('crop-modal-overlay').style.display = 'flex';
+    redrawCropCanvas();
+    setupCropDrag();
+  };
+  img.src = business.logoRaw;
+}
+function closeCropModal(){
+  document.getElementById('crop-modal-overlay').style.display = 'none';
+}
+
+/* ============ MODAL DE AVISO / CONFIRMACIÓN / ENTRADA DE TEXTO, PROPIO DE LA APP ============ */
+let confirmModalCallback = null;
+let confirmModalUsesInput = false;
+
+function showConfirmModal(message, onConfirm, opts){
+  opts = opts || {};
+  document.getElementById('confirm-modal-title').textContent = opts.title || 'Confirmar';
+  document.getElementById('confirm-modal-message').textContent = message;
+  document.getElementById('confirm-modal-accept-btn').textContent = opts.acceptText || 'Aceptar';
+  document.getElementById('confirm-modal-cancel-btn').style.display = (opts.showCancel===false) ? 'none' : 'inline-block';
+  const input = document.getElementById('confirm-modal-input');
+  if(opts.showInput){
+    confirmModalUsesInput = true;
+    input.style.display = 'block';
+    input.type = opts.inputType || 'text';
+    input.placeholder = opts.inputPlaceholder || '';
+    input.value = opts.inputValue!=null ? opts.inputValue : '';
+    setTimeout(()=>input.focus(), 50);
+  } else {
+    confirmModalUsesInput = false;
+    input.style.display = 'none';
+    input.value = '';
+  }
+  confirmModalCallback = onConfirm;
+  document.getElementById('confirm-modal-overlay').style.display = 'flex';
+}
+
+/* Aviso simple, de un solo botón — reemplazo directo de alert() */
+function appAlert(message, opts){
+  opts = opts || {};
+  showConfirmModal(message, opts.onAccept || null, {
+    title: opts.title || 'Aviso',
+    acceptText: opts.acceptText || 'Entendido',
+    showCancel: false
+  });
+}
+
+function closeConfirmModal(){
+  document.getElementById('confirm-modal-overlay').style.display = 'none';
+  confirmModalCallback = null;
+  confirmModalUsesInput = false;
+}
+function confirmModalAccept(){
+  const cb = confirmModalCallback;
+  const inputValue = confirmModalUsesInput ? document.getElementById('confirm-modal-input').value : undefined;
+  const usedInput = confirmModalUsesInput;
+  closeConfirmModal();
+  if(cb) cb(usedInput ? inputValue : undefined);
+}
+
+function redrawCropCanvas(){
+  const canvas = document.getElementById('crop-canvas');
+  const ctx = canvas.getContext('2d');
+  const CS = canvas.width;
+  const img = cropState.img;
+  if(!img) return;
+  const zoom = Number(document.getElementById('crop-zoom').value);
+  const baseScale = CS / Math.min(img.width, img.height);
+  const scale = baseScale * zoom;
+  const dw = img.width*scale, dh = img.height*scale;
+  let dx = (CS-dw)/2 + cropState.offsetX;
+  let dy = (CS-dh)/2 + cropState.offsetY;
+  dx = Math.min(0, Math.max(CS-dw, dx));
+  dy = Math.min(0, Math.max(CS-dh, dy));
+  cropState.offsetX = dx - (CS-dw)/2;
+  cropState.offsetY = dy - (CS-dh)/2;
+  cropState.scale = scale;
+  ctx.clearRect(0,0,CS,CS);
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+function setupCropDrag(){
+  const canvas = document.getElementById('crop-canvas');
+  let dragging=false, lastX=0, lastY=0;
+  const start=(x,y)=>{ dragging=true; lastX=x; lastY=y; canvas.style.cursor='grabbing'; };
+  const move=(x,y)=>{
+    if(!dragging) return;
+    cropState.offsetX += (x-lastX);
+    cropState.offsetY += (y-lastY);
+    lastX=x; lastY=y;
+    redrawCropCanvas();
+  };
+  const end=()=>{ dragging=false; canvas.style.cursor='grab'; };
+  canvas.onmousedown = e=>start(e.offsetX,e.offsetY);
+  canvas.onmousemove = e=>move(e.offsetX,e.offsetY);
+  window.onmouseup = end;
+  canvas.ontouchstart = e=>{ const r=canvas.getBoundingClientRect(); const t=e.touches[0]; start(t.clientX-r.left, t.clientY-r.top); e.preventDefault(); };
+  canvas.ontouchmove = e=>{ const r=canvas.getBoundingClientRect(); const t=e.touches[0]; move(t.clientX-r.left, t.clientY-r.top); e.preventDefault(); };
+  canvas.ontouchend = end;
+}
+
+function applyCustomCrop(){
+  const OUT = 300, CS = 280;
+  const canvas = document.createElement('canvas');
+  canvas.width = OUT; canvas.height = OUT;
+  const ctx = canvas.getContext('2d');
+  const factor = OUT/CS;
+  const img = cropState.img;
+  const dw = img.width*cropState.scale*factor, dh = img.height*cropState.scale*factor;
+  const dx = ((CS-img.width*cropState.scale)/2 + cropState.offsetX)*factor;
+  const dy = ((CS-img.height*cropState.scale)/2 + cropState.offsetY)*factor;
+  ctx.drawImage(img, dx, dy, dw, dh);
+  business.logoOriginal = canvas.toDataURL('image/jpeg', 0.88);
+  business.logoWatermarkOpacity = computeAvgLuminance(canvas) < 130 ? 0.035 : 0.09;
+  closeCropModal();
+  applyLogoShape();
+}
+
+function applyLogoShape(){
+  if(!business.logoOriginal) return;
+  const img = new Image();
+  img.onload = async ()=>{
+    const size = 300;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if(business.logoShape === 'circle'){
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, 0, 0, size, size);
+      business.logo = canvas.toDataURL('image/png');
+      business.logoFormat = 'PNG';
+    } else {
+      ctx.drawImage(img, 0, 0, size, size);
+      business.logo = canvas.toDataURL('image/jpeg', 0.85);
+      business.logoFormat = 'JPEG';
+    }
+    await idbPut('business', business);
+    document.getElementById('logo-preview').innerHTML = '<img src="'+business.logo+'">';
+    renderPreview();
+  };
+  img.src = business.logoOriginal;
+}
+
+function onLogoShapeChange(){
+  business.logoShape = document.getElementById('logo-shape').value;
+  applyLogoShape();
+}
+
+/* ============ FIRMA ============ */
+function handleSignatureUpload(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = async ()=>{
+      const maxW=400, maxH=160;
+      const scale = Math.min(maxW/img.width, maxH/img.height, 1);
+      const w = img.width*scale, h = img.height*scale;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      business.signatureImage = canvas.toDataURL('image/jpeg',0.9);
+      business.signatureFormat = 'JPEG';
+      await idbPut('business', business);
+      renderSignaturePreview();
+      renderPreview();
+      showToast('✓ Firma guardada');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+let sigDrawing = false, sigLastX = 0, sigLastY = 0;
+function sigCanvasPos(canvas, e){
+  const r = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX-r.left)*(canvas.width/r.width), y: (clientY-r.top)*(canvas.height/r.height) };
+}
+function initSignatureCanvas(){
+  const canvas = document.getElementById('signature-canvas');
+  if(!canvas || canvas.dataset.bound) return;
+  canvas.dataset.bound = '1';
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = '#1B222C'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const start = (e)=>{ sigDrawing=true; const p=sigCanvasPos(canvas,e); sigLastX=p.x; sigLastY=p.y; e.preventDefault(); };
+  const move = (e)=>{
+    if(!sigDrawing) return;
+    const p = sigCanvasPos(canvas,e);
+    ctx.beginPath(); ctx.moveTo(sigLastX,sigLastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+    sigLastX=p.x; sigLastY=p.y; e.preventDefault();
+  };
+  const end = ()=>{ sigDrawing=false; };
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', end);
+}
+function clearSignatureCanvas(){
+  const canvas = document.getElementById('signature-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+async function saveDigitalSignature(){
+  const canvas = document.getElementById('signature-canvas');
+  business.signatureImage = canvas.toDataURL('image/png');
+  business.signatureFormat = 'PNG';
+  await idbPut('business', business);
+  renderSignaturePreview();
+  renderPreview();
+  showToast('✓ Firma guardada');
+}
+async function removeSignature(){
+  business.signatureImage = null;
+  business.signatureFormat = null;
+  await idbPut('business', business);
+  renderSignaturePreview();
+  renderPreview();
+}
+function renderSignaturePreview(){
+  const el = document.getElementById('signature-preview');
+  if(!el) return;
+  if(business.signatureImage){
+    el.innerHTML = '<img src="'+business.signatureImage+'" style="max-height:70px;max-width:220px;border:1px solid var(--rule);border-radius:6px;padding:6px;background:#fff;display:block;">'
+      + '<button type="button" class="btn btn-ghost" style="margin-top:8px;padding:6px 12px;font-size:11px;" onclick="removeSignature()">Quitar firma</button>';
+  } else {
+    el.innerHTML = '<div style="font-size:11.5px;color:var(--ink-soft);">Aún no has agregado una firma.</div>';
+  }
+}
+function toggleSignatureInclude(){
+  if(!business.signatureImage){
+    appAlert('Primero agrega tu firma en Configuración (fotografía o firma digital).');
+    return;
+  }
+  includeSignatureFlag = !includeSignatureFlag;
+  const btn = document.getElementById('signature-toggle-btn');
+  if(btn) btn.textContent = includeSignatureFlag ? '✓ Firma agregada' : '🖊️ Agregar firma';
+  renderPreview();
+}
+
+async function saveBusiness(){
+  business.name = document.getElementById('biz-name').value.trim();
+  business.taxId = document.getElementById('biz-id').value.trim();
+  business.economicActivity = document.getElementById('biz-activity').value.trim();
+  business.country = document.getElementById('biz-country').value;
+  if(business.country === 'Otro'){
+    business.currencySymbol = document.getElementById('biz-currency-symbol').value.trim() || '$';
+    business.currencyWord = document.getElementById('biz-currency-word').value.trim() || 'pesos';
+  } else if(COUNTRY_CURRENCY[business.country]){
+    business.currencySymbol = COUNTRY_CURRENCY[business.country].symbol;
+    business.currencyWord = COUNTRY_CURRENCY[business.country].word;
+  } else {
+    business.currencySymbol = business.currencySymbol || '$';
+    business.currencyWord = business.currencyWord || 'pesos';
+  }
+  business.phone = document.getElementById('biz-phone').value.trim();
+  business.email = document.getElementById('biz-email').value.trim();
+  business.city = document.getElementById('biz-city').value.trim();
+  business.address = document.getElementById('biz-address').value.trim();
+  await idbPut('business', business);
+  if(!business.name || !business.taxId){
+    showToast('⚠ Guardado — recuerda completar tu nombre e identificación');
+  } else {
+    showToast('✓ Configuración guardada');
+  }
+}
+
+async function loadBusiness(){
+  const saved = await idbGet('business','profile');
+  if(saved){
+    business = saved;
+    if(!business.paymentMethods) business.paymentMethods = [];
+    document.getElementById('biz-name').value = business.name||'';
+    document.getElementById('biz-id').value = business.taxId||'';
+    document.getElementById('biz-activity').value = business.economicActivity||'';
+    document.getElementById('biz-country').value = business.country||'';
+    document.getElementById('biz-currency-symbol').value = business.currencySymbol||'';
+    document.getElementById('biz-currency-word').value = business.currencyWord||'';
+    onCountryChange();
+    document.getElementById('biz-phone').value = business.phone||'';
+    document.getElementById('biz-email').value = business.email||'';
+    document.getElementById('biz-city').value = business.city||'';
+    document.getElementById('biz-address').value = business.address||'';
+    if(business.logo) document.getElementById('logo-preview').innerHTML = '<img src="'+business.logo+'">';
+    document.getElementById('logo-shape').value = business.logoShape || 'circle';
+  }
+  renderPaymentMethodsList();
+  populatePaymentMethodSelect();
+  renderLicenseStatus();
+  applyUnlockRestrictions();
+  renderSignaturePreview();
+}
+
+/* ============ MÉTODOS DE PAGO ============ */
+function togglePaymentForm(){
+  const form = document.getElementById('payment-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  onPmTypeChange();
+}
+
+function pmLabel(pm){
+  const typeStr = (pm.type==='Cuenta bancaria' && pm.subtype) ? 'Cuenta '+pm.subtype : pm.type;
+  const parts = [pm.entity, pm.alias].filter(Boolean).join(' · ');
+  const number = pm.accountNumber ? ' · '+pm.accountNumber : '';
+  return (parts||typeStr) + number;
+}
+
+function onPmTypeChange(){
+  const type = document.getElementById('pm-type').value;
+  document.getElementById('pm-subtype-field').style.display = (type==='Cuenta bancaria') ? 'block' : 'none';
+}
+
+async function addPaymentMethod(){
+  if(!business.unlocked && (business.paymentMethods||[]).length >= 1){
+    appAlert('La versión gratis incluye 1 método de pago. Desbloquea Billfolio Pro para agregar más.');
+    return;
+  }
+  const entity = document.getElementById('pm-entity').value.trim();
+  const accountNumber = document.getElementById('pm-last-digits').value.trim();
+  const holder = document.getElementById('pm-holder').value.trim();
+  if(!entity || !accountNumber){ appAlert('Por favor ingresa el banco/entidad y el número de cuenta o celular.'); return; }
+  const type = document.getElementById('pm-type').value;
+  const pm = {
+    id: Date.now(),
+    type,
+    subtype: type==='Cuenta bancaria' ? document.getElementById('pm-subtype').value : '',
+    entity,
+    alias: document.getElementById('pm-alias').value.trim(),
+    holder,
+    accountNumber
+  };
+  if(!business.paymentMethods) business.paymentMethods = [];
+  business.paymentMethods.push(pm);
+  await idbPut('business', business);
+  document.getElementById('pm-entity').value = '';
+  document.getElementById('pm-alias').value = '';
+  document.getElementById('pm-holder').value = '';
+  document.getElementById('pm-last-digits').value = '';
+  document.getElementById('payment-form').style.display = 'none';
+  renderPaymentMethodsList();
+  populatePaymentMethodSelect();
+  applyUnlockRestrictions();
+  showToast('✓ Método de pago guardado');
+}
+
+async function deletePaymentMethod(id){
+  business.paymentMethods = (business.paymentMethods||[]).filter(pm=>pm.id!==id);
+  await idbPut('business', business);
+  renderPaymentMethodsList();
+  populatePaymentMethodSelect();
+  applyUnlockRestrictions();
+}
+
+function renderPaymentMethodsList(){
+  const el = document.getElementById('payment-methods-list');
+  if(!el) return;
+  const methods = business.paymentMethods||[];
+  if(methods.length===0){
+    el.innerHTML = '<div class="empty" style="padding:14px;">Aún no has agregado métodos de pago.</div>';
+    return;
+  }
+  el.innerHTML = methods.map(pm => `
+    <div class="hist-item">
+      <div class="hist-main">
+        <span class="hist-client">${pmLabel(pm)}</span>
+        <span class="hist-meta">${pm.subtype ? 'Cuenta '+pm.subtype : pm.type}${pm.holder ? ' · Titular: '+pm.holder : ''}</span>
+      </div>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:11px;" onclick="deletePaymentMethod(${pm.id})">Eliminar</button>
+    </div>
+  `).join('');
+}
+
+function populatePaymentMethodSelect(){
+  const select = document.getElementById('doc-payment-method');
+  if(!select) return;
+  const methods = business.paymentMethods||[];
+  const current = select.value;
+  select.innerHTML = '<option value="">Selecciona un método configurado...</option>' +
+    methods.map(pm => `<option value="${pmLabel(pm)}">${pmLabel(pm)}</option>`).join('') +
+    '<option value="__new__">+ Agregar uno nuevo en Configuración</option>';
+  if(methods.some(pm=>pmLabel(pm)===current)) select.value = current;
+}
+
+/* ============ GENERAR DOCUMENTO ============ */
+function handlePaymentMethodChange(){
+  const select = document.getElementById('doc-payment-method');
+  if(select.value === '__new__'){
+    select.value = '';
+    goTo('setup');
+    togglePaymentForm();
+    return;
+  }
+  renderPreview();
+}
+
+function switchDocType(type){
+  currentDocType = type;
+  document.getElementById('tab-cobro').classList.toggle('active', type==='cobro');
+  document.getElementById('tab-contrato').classList.toggle('active', type==='contrato');
+  document.getElementById('tab-cotizacion').classList.toggle('active', type==='cotizacion');
+
+  document.getElementById('fields-items-shared').style.display = (type==='cobro'||type==='cotizacion') ? 'block':'none';
+  document.getElementById('fields-cobro-extra').style.display = type==='cobro' ? 'block':'none';
+  document.getElementById('fields-cotizacion-extra').style.display = type==='cotizacion' ? 'block':'none';
+  document.getElementById('fields-contrato').style.display = type==='contrato' ? 'block':'none';
+  document.getElementById('fields-linked-quote').style.display = (type==='cobro'||type==='contrato') ? 'block':'none';
+
+  const conceptLabel = document.getElementById('doc-concept-label');
+  if(conceptLabel) conceptLabel.textContent = type==='cotizacion' ? 'Objeto de la cotización' : 'Concepto del cobro';
+
+  renderItemsTable();
+  renderFreeUsageBanner();
+  renderPreview();
+}
+
+/* ============ TABLA DE ÍTEMS (servicio/producto, cant, valor unitario) ============ */
+function handleItemKeydown(event){
+  if(event.key === 'Enter'){
+    event.preventDefault();
+    addItem();
+  }
+}
+
+function addItem(){
+  const input = document.getElementById('doc-item-input');
+  const desc = input.value.trim();
+  if(!desc) return;
+  currentItems.push({ id: Date.now()+Math.random(), description: desc, qty: 1, unitPrice: 0 });
+  input.value = '';
+  renderItemsTable();
+  renderPreview();
+  input.focus();
+}
+
+function updateItem(id, field, value){
+  const item = currentItems.find(it=>it.id===id);
+  if(!item) return;
+  item[field] = field==='description' ? value : Number(value)||0;
+  const lineTotal = (Number(item.qty)||0) * (Number(item.unitPrice)||0);
+  const totalCell = document.getElementById('line-total-'+id);
+  if(totalCell) totalCell.textContent = fmtMoney(lineTotal);
+  const grandTotalEl = document.getElementById('items-grand-total');
+  if(grandTotalEl) grandTotalEl.textContent = fmtMoney(calcItemsTotal());
+  renderPreview();
+}
+
+function removeItem(id){
+  currentItems = currentItems.filter(it=>it.id!==id);
+  renderItemsTable();
+  renderPreview();
+}
+
+function calcItemsTotal(){
+  return currentItems.reduce((sum, it)=> sum + (Number(it.qty)||0) * (Number(it.unitPrice)||0), 0);
+}
+
+function renderItemsTable(){
+  const wrap = document.getElementById('items-table-wrap');
+  const tbody = document.getElementById('items-tbody');
+  if(!wrap || !tbody) return;
+  wrap.style.display = currentItems.length ? 'block' : 'none';
+  tbody.innerHTML = currentItems.map((it,i)=>{
+    const lineTotal = (Number(it.qty)||0) * (Number(it.unitPrice)||0);
+    return `<tr style="border-bottom:1px solid var(--rule);">
+      <td style="padding:6px 4px;color:var(--ink-soft);">${i+1}</td>
+      <td style="padding:6px 4px;">
+        <input type="text" value="${it.description.replace(/"/g,'&quot;')}" oninput="updateItem(${it.id},'description',this.value)" style="border:none;background:transparent;padding:2px 0;font-size:12px;width:100%;">
+      </td>
+      <td style="padding:6px 4px;">
+        <input type="number" min="0" inputmode="numeric" maxlength="10" value="${it.qty}" oninput="updateItem(${it.id},'qty',this.value)" style="border:1px solid var(--rule);border-radius:5px;padding:4px 6px;font-size:12px;width:100%;text-align:center;">
+      </td>
+      <td style="padding:6px 4px;">
+        <input type="number" min="0" inputmode="numeric" maxlength="10" class="no-spinner" value="${it.unitPrice}" oninput="updateItem(${it.id},'unitPrice',this.value)" style="border:1px solid var(--rule);border-radius:5px;padding:4px 6px;font-size:12px;width:100%;text-align:right;">
+      </td>
+      <td id="line-total-${it.id}" style="padding:6px 4px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:600;">${fmtMoney(lineTotal)}</td>
+      <td style="padding:6px 4px;text-align:center;">
+        <span onclick="removeItem(${it.id})" style="cursor:pointer;color:var(--danger);font-size:14px;">✕</span>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('items-grand-total').textContent = fmtMoney(calcItemsTotal());
+}
+
+function fmtMoney(n){
+  const symbol = (typeof business!=='undefined' && business.currencySymbol) ? business.currencySymbol : '$';
+  if(!n) return symbol+'0';
+  return symbol + ' ' + Number(n).toLocaleString('es');
+}
+
+function amountToWords(num, currency){
+  currency = (currency||'pesos').toLowerCase();
+  num = Math.round(Number(num)||0);
+  if(num===0) return 'Cero '+currency;
+  if(num===1) return 'Un '+currency.replace(/s$/,'');
+  const UNI=['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve'];
+  const ESP=['diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve'];
+  const DEC=['','','veinte','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+  const CEN=['','ciento','doscientos','trescientos','cuatrocientos','quinientos','seiscientos','setecientos','ochocientos','novecientos'];
+
+  function tresDigitos(n){
+    if(n===0) return '';
+    if(n===100) return 'cien';
+    const d = Math.floor(n/100), r = n%100;
+    let out = d>0 ? CEN[d] : '';
+    if(r>0){
+      out += d>0 ? ' ' : '';
+      if(r<10) out += UNI[r];
+      else if(r<20) out += ESP[r-10];
+      else{
+        const dd=Math.floor(r/10), uu=r%10;
+        if(dd===2 && uu>0) out += 'veinti'+UNI[uu];
+        else{ out += DEC[dd]; if(uu>0) out += ' y '+UNI[uu]; }
+      }
+    }
+    return out;
+  }
+  function apocope(w){
+    if(w.endsWith('veintiuno')) return w.slice(0,-3)+'ún';
+    if(w.endsWith('uno')){
+      if(w==='uno') return 'un';
+      return w.slice(0,-3)+'un';
+    }
+    return w;
+  }
+  function grupo(n, singular, plural){
+    if(n===1) return singular;
+    return tresDigitos(n)+' '+plural;
+  }
+
+  const millones = Math.floor(num/1000000);
+  const miles = Math.floor((num%1000000)/1000);
+  const cientos = num%1000;
+  let parts = [];
+  if(millones>0) parts.push(grupo(millones,'un millón','millones'));
+  if(miles>0) parts.push(miles===1 ? 'mil' : apocope(tresDigitos(miles))+' mil');
+  if(cientos>0) parts.push(apocope(tresDigitos(cientos)));
+
+  let words = parts.join(' ').trim();
+  words = words.charAt(0).toUpperCase()+words.slice(1);
+  const deSuffix = (millones>0 && miles===0 && cientos===0) ? ' de' : '';
+  return words + deSuffix + ' ' + currency;
+}
+
+let reservedDocNumber = null;
+let reservedDocType = null;
+function getOrReserveDocNumber(type){
+  if(reservedDocType === type && reservedDocNumber) return reservedDocNumber;
+  reservedDocNumber = peekDocNumber(type);
+  reservedDocType = type;
+  return reservedDocNumber;
+}
+function clearDocNumberReservation(){
+  reservedDocNumber = null;
+  reservedDocType = null;
+}
+const DOC_NUMBER_META = {
+  cobro:      { key:'nextCobroNum',      prefix:'FC-' },
+  contrato:   { key:'nextContratoNum',   prefix:'CS-' },
+  cotizacion: { key:'nextCotizacionNum', prefix:'COT-' },
+};
+function peekDocNumber(type){
+  const meta = DOC_NUMBER_META[type] || DOC_NUMBER_META.cobro;
+  const n = business[meta.key] || 1;
+  return meta.prefix + String(1000+n);
+}
+async function consumeDocNumber(type){
+  const meta = DOC_NUMBER_META[type] || DOC_NUMBER_META.cobro;
+  const num = peekDocNumber(type);
+  business[meta.key] = (business[meta.key] || 1) + 1;
+  await idbPut('business', business);
+  return num;
+}
+
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  return dd+'/'+mm+'/'+dt.getFullYear();
+}
+
+function collectDocData(){
+  const clientName = document.getElementById('doc-client-name').value.trim() || 'Nombre del cliente';
+  const clientId = document.getElementById('doc-client-id').value.trim();
+  const editedOriginal = editingDocId ? allDocuments.find(doc=>doc.id===editingDocId) : null;
+  const docNumber = editedOriginal ? editedOriginal.docNumber : undefined;
+  const voided = editedOriginal ? editedOriginal.voided : false;
+  const linkQuoteEl = document.getElementById('doc-link-quote');
+  const linkedQuoteNumber = editedOriginal ? (editedOriginal.linkedQuoteNumber||'') : (linkQuoteEl ? linkQuoteEl.value.trim() : '');
+  if(currentDocType==='cobro'){
+    return {
+      type:'cobro',
+      docNumber, voided,
+      includeSignature: includeSignatureFlag,
+      clientName, clientId,
+      linkedQuoteNumber,
+      concept: document.getElementById('doc-concept').value.trim(),
+      items: currentItems.map(it=>({description:it.description, qty:Number(it.qty)||0, unitPrice:Number(it.unitPrice)||0})),
+      amount: calcItemsTotal(),
+      paymentMethod: document.getElementById('doc-payment-method').value.trim(),
+      issueDate: document.getElementById('doc-issue-date').value,
+      dueDate: document.getElementById('doc-due-date').value,
+      cost: document.getElementById('doc-cost').value ? Number(document.getElementById('doc-cost').value) : null,
+    };
+  } else if(currentDocType==='cotizacion'){
+    const completed = editedOriginal ? !!editedOriginal.completed : false;
+    return {
+      type:'cotizacion',
+      docNumber, voided, completed,
+      includeSignature: includeSignatureFlag,
+      clientName, clientId,
+      concept: document.getElementById('doc-concept').value.trim(),
+      items: currentItems.map(it=>({description:it.description, qty:Number(it.qty)||0, unitPrice:Number(it.unitPrice)||0})),
+      amount: calcItemsTotal(),
+      validity: document.getElementById('doc-quote-validity').value.trim(),
+      notes: document.getElementById('doc-quote-notes').value.trim(),
+      issueDate: document.getElementById('doc-issue-date-q').value,
+    };
+  } else {
+    return {
+      type:'contrato',
+      docNumber, voided,
+      includeSignature: includeSignatureFlag,
+      clientName, clientId,
+      linkedQuoteNumber,
+      scope: document.getElementById('doc-scope').value.trim(),
+      delivery: document.getElementById('doc-delivery').value.trim(),
+      payTerms: document.getElementById('doc-pay-terms').value.trim(),
+      ip: document.getElementById('doc-ip').value.trim(),
+      issueDate: document.getElementById('doc-issue-date-c').value,
+    };
+  }
+}
+
+/* ============ ENCADENAMIENTO: CARGAR DATOS DESDE UNA COTIZACIÓN ============ */
+function loadFromQuote(){
+  const input = document.getElementById('doc-link-quote');
+  const statusEl = document.getElementById('link-quote-status');
+  const raw = (input.value||'').trim().toUpperCase();
+  if(!raw){ if(statusEl) statusEl.textContent = ''; return; }
+  const quote = allDocuments.find(doc=>doc.type==='cotizacion' && (doc.docNumber||'').toUpperCase()===raw);
+  if(!quote){
+    if(statusEl){ statusEl.textContent = '⚠ No encontramos ninguna cotización con ese número.'; statusEl.style.color = 'var(--danger)'; }
+    return;
+  }
+  document.getElementById('doc-client-name').value = quote.clientName || '';
+  document.getElementById('doc-client-id').value = quote.clientId || '';
+  document.getElementById('doc-concept').value = quote.concept || '';
+  currentItems = (quote.items||[]).map(it=>({ id: Date.now()+Math.random(), description: it.description, qty: it.qty, unitPrice: it.unitPrice }));
+  renderItemsTable();
+  if(statusEl){ statusEl.textContent = '✓ Datos cargados desde la cotización '+quote.docNumber+(quote.completed?' (ya estaba marcada como completada, se actualizará).':'.'); statusEl.style.color = 'var(--forest)'; }
+  renderPreview();
+}
+
+function getSelectedPaymentMethod(label){
+  return (business.paymentMethods||[]).find(pm=>pmLabel(pm)===label);
+}
+
+function renderPreview(){
+  const d = collectDocData();
+  const docNumber = d.docNumber || getOrReserveDocNumber(d.type);
+  const pillClass = d.type==='cobro' ? 'doc-type-pill' : (d.type==='cotizacion' ? 'doc-type-pill cotizacion' : 'doc-type-pill contrato');
+  const pillLabel = d.type==='cobro' ? 'Cuenta de cobro' : (d.type==='cotizacion' ? 'Cotización' : 'Contrato de servicios');
+
+  let html = '';
+  if(business.logo){
+    html += '<img src="'+business.logo+'" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;max-width:320px;opacity:'+(business.logoWatermarkOpacity||0.08)+';pointer-events:none;z-index:0;">';
+  }
+  if(d.voided){
+    html += '<div style="position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:52px;font-weight:800;color:rgba(179,66,58,.35);border:6px solid rgba(179,66,58,.35);border-radius:12px;padding:4px 24px;pointer-events:none;z-index:2;letter-spacing:2px;">ANULADO</div>';
+  }
+  html += '<div style="position:relative;z-index:1;">';
+
+  /* --- Encabezado --- */
+  html += '<div class="doc-header-row">';
+  html += '<div style="display:flex;gap:16px;align-items:flex-start;">';
+  html += '<div>';
+  html += '<div class="doc-avatar'+(business.logoShape==='circle'?' circle':'')+'">'+(business.logo ? '<img src="'+business.logo+'">' : (business.name?business.name.charAt(0).toUpperCase():'B'))+'</div>';
+  if(business.economicActivity) html += '<div class="doc-biz-meta" style="margin-top:14px;max-width:80px;">'+business.economicActivity+'</div>';
+  html += '</div>';
+  html += '<div>';
+  html += '<div class="doc-biz-name">'+(business.name||'Tu negocio')+'</div>';
+  if(business.taxId){
+    html += '<div class="doc-biz-meta"><strong>ID o NIT:</strong> '+business.taxId+'</div>';
+  } else {
+    html += '<div class="doc-biz-meta"><span style="color:var(--danger);">Falta tu identificación — complétala en Configuración</span></div>';
+  }
+  if(business.city) html += '<div class="doc-biz-meta"><strong>Ciudad:</strong> '+business.city+'</div>';
+  if(business.phone) html += '<div class="doc-biz-meta"><strong>Teléfono:</strong> '+business.phone+'</div>';
+  if(business.address) html += '<div class="doc-biz-meta"><strong>Dirección:</strong> '+business.address+'</div>';
+  if(business.email) html += '<div class="doc-biz-meta"><strong>Correo:</strong> '+business.email+'</div>';
+  html += '</div></div>';
+  html += '<div style="text-align:right;">';
+  html += '<span class="'+pillClass+'">'+pillLabel+'</span>';
+  html += '<div class="doc-number">'+docNumber+'</div>';
+  if(d.type==='cotizacion'){
+    html += '<div class="doc-dates"><strong>Fecha de Emisión:</strong> '+fmtDate(d.issueDate)+(d.validity?'<br><strong>Validez de la oferta:</strong> '+d.validity:'')+'</div>';
+  } else {
+    html += '<div class="doc-dates"><strong>Fecha de Emisión:</strong> '+fmtDate(d.issueDate)+'<br><strong>Fecha de Vencimiento:</strong> '+fmtDate(d.dueDate||d.issueDate)+'</div>';
+  }
+  html += '</div>';
+  html += '</div>';
+
+  html += '<hr class="ledger-divider">';
+
+  if(d.linkedQuoteNumber){
+    html += '<div class="note" style="margin-bottom:14px;">Generado a partir de la cotización <strong>'+d.linkedQuoteNumber+'</strong>.</div>';
+  }
+
+  if(d.type==='cobro' || d.type==='cotizacion'){
+    const isQuote = d.type==='cotizacion';
+    /* --- Dirigido a / método de pago (o validez, si es cotización) --- */
+    html += '<div class="doc-two-col">';
+    html += '<div><div class="doc-section-label">Dirigido a (cliente)</div><div class="doc-client-name">'+(d.clientName||'—')+'</div>';
+    if(d.clientId) html += '<div class="doc-biz-meta">ID: '+d.clientId+'</div>';
+    html += '</div>';
+    if(isQuote){
+      html += '<div><div class="doc-section-label">Validez de la oferta</div>';
+      html += '<div class="doc-pay-box" style="color:var(--ink-soft);font-size:11.5px;">'+(d.validity ? d.validity : 'No especificada')+'</div>';
+      html += '</div>';
+    } else {
+      const pm = getSelectedPaymentMethod(d.paymentMethod);
+      html += '<div><div class="doc-section-label">Método de transferencia</div>';
+      if(pm){
+        html += '<div class="doc-pay-box"><div class="bank">'+pm.entity+'</div>'
+          + '<div class="acct">'+(pm.subtype ? 'Cuenta '+pm.subtype : pm.type)+': '+pm.accountNumber+'</div>'
+          + '<div class="meta">Titular: '+(pm.holder||business.name||'—')+'</div>'
+          + '<div class="meta">ID: '+(business.taxId||'—')+'</div></div>';
+      } else {
+        html += '<div class="doc-pay-box" style="color:var(--ink-soft);font-size:11.5px;">Sin método de pago seleccionado</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+
+    if(d.concept) html += '<div class="ledger-body-text" style="margin-top:0;"><strong>'+(isQuote?'Objeto de la cotización':'Concepto')+':</strong> '+d.concept+'</div>';
+
+    if(d.items && d.items.length){
+      html += '<table class="doc-items-table"><thead><tr>'
+        + '<th>Descripción del concepto / servicio</th><th>Cant.</th><th>Valor unitario</th><th>Subtotal</th>'
+        + '</tr></thead><tbody>';
+      d.items.forEach(it=>{
+        html += '<tr><td>'+it.description+'</td><td>'+it.qty+'</td>'
+          + '<td>'+fmtMoney(it.unitPrice)+'</td><td>'+fmtMoney(it.qty*it.unitPrice)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<div class="ledger-body-text" style="color:var(--ink-soft);">Aún no has agregado ítems.</div>';
+    }
+
+    html += '<div class="doc-footer-row">';
+    if(isQuote){
+      html += '<div><div class="doc-notes-label">Notas u observaciones</div><div class="doc-notes">'+(d.notes || 'Sin observaciones adicionales.')+'</div></div>';
+    } else {
+      html += '<div><div class="doc-notes-label">Notas importantes</div><div class="doc-notes">El pago puede ser realizado por '+(d.paymentMethod?'transferencia a la cuenta indicada':'el método de pago acordado')+'. Fecha límite de pago: '+fmtDate(d.dueDate)+'.</div></div>';
+    }
+    html += '<div class="doc-totals">';
+    html += '<div class="doc-subtotal-row">SUBTOTAL: <strong>'+fmtMoney(d.amount)+'</strong></div>';
+    html += '<div class="doc-total-row"><span class="doc-total-label">'+(isQuote?'TOTAL COTIZADO:':'TOTAL A COBRAR:')+'</span> <span class="doc-total-value">'+fmtMoney(d.amount)+'</span></div>';
+    html += '<div class="doc-son-pill">Son: '+amountToWords(d.amount, business.currencyWord)+'</div>';
+    html += '</div></div>';
+  } else {
+    html += '<div style="display:flex;gap:28px;margin-bottom:20px;">';
+    html += '<div style="font-size:11.5px;"><strong>Ciudad:</strong> '+(business.city||'—')+'</div>';
+    html += '<div style="font-size:11.5px;"><strong>Fecha:</strong> '+fmtDate(d.issueDate)+'</div>';
+    html += '</div>';
+
+    html += '<div class="doc-contract-title">Dirigido a</div>';
+    html += '<div class="doc-client-name">'+(d.clientName||'—')+'</div>';
+    if(d.clientId) html += '<div class="doc-biz-meta" style="margin-bottom:20px;">ID: '+d.clientId+'</div>';
+    else html += '<div style="margin-bottom:20px;"></div>';
+
+    const contractSection = (title, text)=>{
+      html += '<div style="margin-bottom:16px;"><div class="doc-section-label">'+title+'</div>'
+        + '<div class="ledger-body-text" style="margin:0;">'+(text||'—')+'</div></div>';
+    };
+    contractSection('Alcance del trabajo', d.scope);
+    contractSection('Plazos de entrega', d.delivery);
+    contractSection('Condiciones de pago', d.payTerms);
+    contractSection('Propiedad intelectual', d.ip);
+  }
+
+  if(d.includeSignature && business.signatureImage){
+    html += '<div style="display:flex;gap:24px;margin-top:34px;padding-top:20px;border-top:1px solid var(--rule);">';
+    html += '<div style="flex:1;text-align:center;">';
+    html += '<div style="height:56px;display:flex;align-items:flex-end;justify-content:center;"><img src="'+business.signatureImage+'" style="max-height:56px;max-width:90%;"></div>';
+    html += '<div style="border-top:1px solid var(--ink);width:80%;margin:4px auto 0;"></div>';
+    html += '<div style="font-size:11px;font-weight:700;margin-top:6px;">'+(business.name||'—')+'</div>';
+    html += '<div style="font-size:10px;color:var(--ink-soft);">ID: '+(business.taxId||'—')+'</div>';
+    html += '<div style="font-size:9px;color:var(--ink-soft);margin-top:5px;text-transform:uppercase;letter-spacing:.5px;">Firma de Titular</div>';
+    html += '</div>';
+    html += '<div style="flex:1;text-align:center;">';
+    html += '<div style="height:56px;"></div>';
+    html += '<div style="border-top:1px solid var(--ink);width:80%;margin:4px auto 0;"></div>';
+    html += '<div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">Nombre: ________________</div>';
+    html += '<div style="font-size:10px;color:var(--ink-soft);">Identificación: ________________</div>';
+    html += '<div style="font-size:9px;color:var(--ink-soft);margin-top:5px;text-transform:uppercase;letter-spacing:.5px;">Firma Aceptante</div>';
+    html += '</div>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+  document.getElementById('ledger-preview').innerHTML = html;
+}
+
+function openPreviewModal(){
+  renderPreview();
+  document.getElementById('preview-modal-overlay').style.display = 'flex';
+}
+function closePreviewModal(){
+  document.getElementById('preview-modal-overlay').style.display = 'none';
+}
+
+async function generateAndSave(){
+  const d = collectDocData();
+  if(!business.unlocked && countDocsByType(d.type) >= FREE_DOC_LIMIT){
+    appAlert('Ya generaste tus '+FREE_DOC_LIMIT+' '+docTypeLabel(d.type)+' gratis. Desbloquea Billfolio Pro en Configuración para seguir generando sin límite.');
+    goTo('setup');
+    return;
+  }
+  if(!business.name || !business.taxId){
+    appAlert('Antes de generar cuentas de cobro, completa tu nombre e identificación en Configuración — son datos obligatorios en este tipo de documento.');
+    goTo('setup');
+    return;
+  }
+  if(!d.clientName || d.clientName==='Nombre del cliente'){
+    appAlert('Por favor ingresa el nombre del cliente.');
+    return;
+  }
+  if(d.type==='cobro' && !d.clientId){
+    appAlert('Por favor ingresa la identificación del cliente — es un dato obligatorio en la cuenta de cobro.');
+    return;
+  }
+  if(d.type==='cobro' && !d.concept){
+    appAlert('Por favor ingresa el concepto del cobro.');
+    return;
+  }
+  if(d.type==='cobro' && (!d.items || d.items.length===0)){
+    appAlert('Agrega al menos un servicio o producto.');
+    return;
+  }
+  d.id = Date.now();
+  d.docNumber = getOrReserveDocNumber(d.type);
+  await consumeDocNumber(d.type);
+  clearDocNumberReservation();
+  d.createdAt = new Date().toISOString();
+  await idbPut('documents', d);
+  await loadDocuments();
+  checkBackupReminder();
+  renderFreeUsageBanner();
+  showToast('✓ Documento guardado en tu historial');
+  renderPreview();
+}
+
+let editingDocId = null;
+
+async function generateAndSave(){
+  const d = collectDocData();
+
+  if(editingDocId){
+    if(!business.unlocked){ appAlert('Editar documentos es una función de Billfolio Pro.'); editingDocId=null; return; }
+    if(!d.clientName || d.clientName==='Nombre del cliente'){ appAlert('Por favor ingresa el nombre del cliente.'); return; }
+    if((d.type==='cobro'||d.type==='cotizacion') && (!d.items || d.items.length===0)){ appAlert('Agrega al menos un servicio o producto.'); return; }
+    const original = allDocuments.find(doc=>doc.id===editingDocId);
+    d.id = editingDocId;
+    d.docNumber = original ? original.docNumber : getOrReserveDocNumber(d.type);
+    d.createdAt = original ? original.createdAt : new Date().toISOString();
+    d.voided = original ? original.voided : false;
+    d.updatedAt = new Date().toISOString();
+    await idbPut('documents', d);
+    await markQuoteCompletedIfLinked(d);
+    await loadDocuments();
+    editingDocId = null;
+    updateGenerateButtonLabel();
+    showToast('✓ Cambios guardados');
+    renderPreview();
+    return;
+  }
+
+  const typeLimit = freeLimitFor(d.type);
+  if(!business.unlocked && countDocsByType(d.type) >= typeLimit){
+    appAlert('Ya generaste tus '+typeLimit+' '+docTypeLabel(d.type)+' gratis. Desbloquea Billfolio Pro en Configuración para seguir generando sin límite.');
+    goTo('setup');
+    return;
+  }
+  if(!business.name || !business.taxId){
+    appAlert('Antes de generar documentos, completa tu nombre e identificación en Configuración — son datos obligatorios.');
+    goTo('setup');
+    return;
+  }
+  if(!d.clientName || d.clientName==='Nombre del cliente'){
+    appAlert('Por favor ingresa el nombre del cliente.');
+    return;
+  }
+  if(d.type==='cobro' && !d.clientId){
+    appAlert('Por favor ingresa la identificación del cliente — es un dato obligatorio en la cuenta de cobro.');
+    return;
+  }
+  if(d.type==='cobro' && !d.concept){
+    appAlert('Por favor ingresa el concepto del cobro.');
+    return;
+  }
+  if((d.type==='cobro'||d.type==='cotizacion') && (!d.items || d.items.length===0)){
+    appAlert('Agrega al menos un servicio o producto.');
+    return;
+  }
+  d.id = Date.now();
+  d.docNumber = getOrReserveDocNumber(d.type);
+  await consumeDocNumber(d.type);
+  clearDocNumberReservation();
+  d.createdAt = new Date().toISOString();
+  d.voided = false;
+  await idbPut('documents', d);
+  await markQuoteCompletedIfLinked(d);
+  await loadDocuments();
+  checkBackupReminder();
+  renderFreeUsageBanner();
+  showToast('✓ Documento guardado en tu historial');
+  renderPreview();
+}
+
+async function markQuoteCompletedIfLinked(d){
+  if(!d.linkedQuoteNumber) return;
+  const quote = allDocuments.find(doc=>doc.type==='cotizacion' && (doc.docNumber||'').toUpperCase()===d.linkedQuoteNumber.toUpperCase());
+  if(quote && !quote.completed){
+    quote.completed = true;
+    await idbPut('documents', quote);
+  }
+}
+
+function updateGenerateButtonLabel(){
+  const btn = document.getElementById('generate-save-btn');
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  if(!btn) return;
+  if(editingDocId){
+    btn.textContent = 'Guardar cambios';
+    if(cancelBtn) cancelBtn.style.display = 'inline-block';
+  } else {
+    btn.textContent = 'Generar y guardar';
+    if(cancelBtn) cancelBtn.style.display = 'none';
+  }
+}
+
+function requestEditDocument(id){
+  if(business.unlocked){ editDocument(id); return; }
+  appAlert('Editar documentos es una función de Billfolio Pro. Escríbenos para activar tu cuenta y desbloquear esta función.');
+}
+
+function editDocument(id){
+  if(!business.unlocked){ appAlert('Editar documentos es una función de Billfolio Pro. Desbloquéalo en Configuración.'); return; }
+  const d = allDocuments.find(doc=>doc.id===id);
+  if(!d) return;
+  editingDocId = id;
+  goTo('generar');
+  switchDocType(d.type);
+  document.getElementById('doc-client-name').value = d.clientName||'';
+  document.getElementById('doc-client-id').value = d.clientId||'';
+  const linkQuoteEl = document.getElementById('doc-link-quote');
+  if(linkQuoteEl) linkQuoteEl.value = d.linkedQuoteNumber||'';
+  if(d.type==='cobro'){
+    document.getElementById('doc-issue-date').value = d.issueDate||'';
+    document.getElementById('doc-concept').value = d.concept||'';
+    document.getElementById('doc-due-date').value = d.dueDate||'';
+    document.getElementById('doc-cost').value = d.cost!=null ? d.cost : '';
+    currentItems = (d.items||[]).map(it=>({...it, id: Date.now()+Math.random()}));
+    renderItemsTable();
+    populatePaymentMethodSelect();
+    document.getElementById('doc-payment-method').value = d.paymentMethod||'';
+  } else if(d.type==='cotizacion'){
+    document.getElementById('doc-issue-date-q').value = d.issueDate||'';
+    document.getElementById('doc-concept').value = d.concept||'';
+    document.getElementById('doc-quote-validity').value = d.validity||'';
+    document.getElementById('doc-quote-notes').value = d.notes||'';
+    currentItems = (d.items||[]).map(it=>({...it, id: Date.now()+Math.random()}));
+    renderItemsTable();
+  } else {
+    document.getElementById('doc-issue-date-c').value = d.issueDate||'';
+    document.getElementById('doc-scope').value = d.scope||'';
+    document.getElementById('doc-delivery').value = d.delivery||'';
+    document.getElementById('doc-pay-terms').value = d.payTerms||'';
+    document.getElementById('doc-ip').value = d.ip||'';
+  }
+  updateGenerateButtonLabel();
+  includeSignatureFlag = !!d.includeSignature;
+  const sigBtn = document.getElementById('signature-toggle-btn');
+  if(sigBtn) sigBtn.textContent = includeSignatureFlag ? '✓ Firma agregada' : '🖊️ Agregar firma';
+  renderPreview();
+  const singularLabel = d.type==='cobro' ? 'cuenta de cobro' : (d.type==='cotizacion' ? 'cotización' : 'contrato');
+  showToast('Editando '+singularLabel+' '+d.docNumber);
+}
+
+function cancelEdit(){
+  editingDocId = null;
+  newDocument();
+  updateGenerateButtonLabel();
+}
+
+function toggleVoidDocument(id){
+  const d = allDocuments.find(doc=>doc.id===id);
+  if(!d) return;
+  const action = d.voided ? 'reactivar' : 'anular';
+  const message = '¿Seguro que quieres '+action+' este documento?'+(d.voided?'':' Un documento anulado no se cuenta como venta real en tus informes.');
+  showConfirmModal(message, async ()=>{
+    d.voided = !d.voided;
+    await idbPut('documents', d);
+    await loadDocuments();
+    renderHistorial();
+    showToast(d.voided ? '✓ Documento anulado' : '✓ Documento reactivado');
+  }, {title: d.voided ? 'Reactivar documento' : 'Anular documento', acceptText: d.voided ? 'Reactivar' : 'Anular'});
+}
+
+function deleteQuotePermanently(id){
+  const d = allDocuments.find(doc=>doc.id===id);
+  if(!d) return;
+  showConfirmModal(
+    'Esta cotización se eliminará por completo y no se puede deshacer. ¿Seguro que quieres borrarla?',
+    async ()=>{
+      if(!currentUser) return;
+      const { error } = await supabaseClient.from('documents').delete().eq('id', String(id)).eq('user_id', currentUser.id);
+      if(error){ appAlert('No pudimos eliminar la cotización: '+error.message); return; }
+      await loadDocuments();
+      renderHistorial();
+      showToast('✓ Cotización eliminada');
+    },
+    {title:'Eliminar cotización', acceptText:'Eliminar'}
+  );
+}
+
+function newDocument(){
+  editingDocId = null;
+  updateGenerateButtonLabel();
+  includeSignatureFlag = false;
+  const sigBtn = document.getElementById('signature-toggle-btn');
+  if(sigBtn) sigBtn.textContent = '🖊️ Agregar firma';
+  document.getElementById('doc-client-name').value = '';
+  document.getElementById('doc-client-id').value = '';
+  document.getElementById('doc-payment-method').value = '';
+  document.getElementById('doc-issue-date').value = '';
+  document.getElementById('doc-due-date').value = '';
+  const conceptEl = document.getElementById('doc-concept'); if(conceptEl) conceptEl.value='';
+  const costEl = document.getElementById('doc-cost'); if(costEl) costEl.value='';
+  const scopeEl = document.getElementById('doc-scope'); if(scopeEl) scopeEl.value='';
+  const deliveryEl = document.getElementById('doc-delivery'); if(deliveryEl) deliveryEl.value='';
+  const payTermsEl = document.getElementById('doc-pay-terms'); if(payTermsEl) payTermsEl.value='';
+  const ipEl = document.getElementById('doc-ip'); if(ipEl) ipEl.value='';
+  const issueDateCEl = document.getElementById('doc-issue-date-c'); if(issueDateCEl) issueDateCEl.value='';
+  const issueDateQEl = document.getElementById('doc-issue-date-q'); if(issueDateQEl) issueDateQEl.value='';
+  const validityEl = document.getElementById('doc-quote-validity'); if(validityEl) validityEl.value='';
+  const quoteNotesEl = document.getElementById('doc-quote-notes'); if(quoteNotesEl) quoteNotesEl.value='';
+  const linkQuoteEl = document.getElementById('doc-link-quote'); if(linkQuoteEl) linkQuoteEl.value='';
+  const linkStatusEl = document.getElementById('link-quote-status'); if(linkStatusEl) linkStatusEl.textContent='';
+  currentItems = [];
+  clearDocNumberReservation();
+  renderItemsTable();
+  renderPreview();
+  showToast('✓ Listo para un documento nuevo');
+}
+
+function redownloadDocument(id){
+  const doc = allDocuments.find(x=>x.id===id);
+  if(!doc) return;
+  downloadPdf(doc);
+}
+
+function downloadPdf(savedDoc){
+  const d = savedDoc || collectDocData();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'letter'});
+  const margin = 56;
+  const rightEdge = 556;
+  const contentWidth = rightEdge - margin;
+  let y = margin;
+
+  if(business.logo){
+    try{
+      const wmSize = 320;
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({opacity: business.logoWatermarkOpacity || 0.08}));
+      doc.addImage(business.logo, business.logoFormat||'JPEG', (612-wmSize)/2, (792-wmSize)/2, wmSize, wmSize);
+      doc.restoreGraphicsState();
+    }catch(e){}
+  }
+
+  /* --- Fila 1: nombre del negocio, grande y en negrita, arriba de todo --- */
+  doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(17);
+  doc.text(business.name || 'Tu negocio', margin, y+13);
+
+  /* --- Pill de tipo de documento + número + fechas (columna derecha, misma fila que el nombre) --- */
+  const isCobro = d.type==='cobro';
+  const isCotizacion = d.type==='cotizacion';
+  const pillText = isCobro ? 'CUENTA DE COBRO' : (isCotizacion ? 'COTIZACIÓN' : 'CONTRATO DE SERVICIOS');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  const pillW = doc.getTextWidth(pillText) + 24;
+  if(isCobro){ doc.setFillColor(220,252,231); doc.setTextColor(22,101,52); }
+  else if(isCotizacion){ doc.setFillColor(253,241,214); doc.setTextColor(156,123,30); }
+  else { doc.setFillColor(224,234,251); doc.setTextColor(21,38,64); }
+  doc.roundedRect(rightEdge-pillW, y, pillW, 18, 9, 9, 'F');
+  doc.text(pillText, rightEdge-pillW/2, y+12, {align:'center'});
+
+  const docNumber = d.docNumber || getOrReserveDocNumber(d.type);
+  doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(17);
+  doc.text(docNumber, rightEdge, y+40, {align:'right'});
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100);
+  doc.text('Fecha de Emisión: '+fmtDate(d.issueDate), rightEdge, y+58, {align:'right'});
+  if(isCotizacion){
+    doc.text('Validez de la oferta: '+(d.validity||'—'), rightEdge, y+70, {align:'right'});
+  } else {
+    doc.text('Fecha de Vencimiento: '+fmtDate(d.dueDate||d.issueDate), rightEdge, y+70, {align:'right'});
+  }
+
+  /* --- Fila 2: logo (más grande) + datos con títulos, logo centrado verticalmente junto al bloque de texto --- */
+  const rowB = y + 30;
+  const logoSize = 66;
+  function pdfLabeledRow(pairs, x, yy, size){
+    let cx = x;
+    doc.setFontSize(size);
+    pairs.forEach((p,i)=>{
+      if(i>0){ doc.setFont('helvetica','normal'); doc.setTextColor(170); doc.text('  ·  ', cx, yy); cx += doc.getTextWidth('  ·  '); }
+      doc.setFont('helvetica','bold'); doc.setTextColor(100); doc.text(p.label+' ', cx, yy); cx += doc.getTextWidth(p.label+' ');
+      doc.setFont('helvetica','normal'); doc.setTextColor(20); doc.text(p.value, cx, yy); cx += doc.getTextWidth(p.value);
+    });
+  }
+  const infoLines = [];
+  if(business.taxId) infoLines.push({label:'ID o NIT:', value:business.taxId});
+  else infoLines.push({warning:true});
+  if(business.city) infoLines.push({label:'Ciudad:', value:business.city});
+  if(business.phone) infoLines.push({label:'Teléfono:', value:business.phone});
+  if(business.address) infoLines.push({label:'Dirección:', value:business.address});
+  if(business.email) infoLines.push({label:'Correo:', value:business.email});
+
+  const lineH = 14;
+  const infoBlockHeight = infoLines.length*lineH;
+  const logoY = rowB + Math.max(0, (infoBlockHeight - logoSize)/2);
+  const infoStartY = rowB + Math.max(0, (logoSize - infoBlockHeight)/2) + 10;
+
+  if(business.logo){
+    try{ doc.addImage(business.logo, business.logoFormat||'JPEG', margin, logoY, logoSize, logoSize); }catch(e){}
+  } else {
+    doc.setFillColor(21,38,64);
+    doc.roundedRect(margin, logoY, logoSize, logoSize, 10, 10, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(24);
+    doc.text((business.name?business.name.charAt(0).toUpperCase():'B'), margin+logoSize/2, logoY+logoSize/2+8, {align:'center'});
+  }
+
+  const infoX = margin + logoSize + 18;
+  infoLines.forEach((line, i)=>{
+    const lineY = infoStartY + i*lineH;
+    if(line.warning){
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(180,60,50);
+      doc.text('Falta tu identificación — complétala en Configuración', infoX, lineY);
+    } else {
+      pdfLabeledRow([line], infoX, lineY, 8.5);
+    }
+  });
+
+  const rowBBottom = Math.max(logoY+logoSize, infoStartY+infoBlockHeight);
+
+  /* --- Fila 3: actividad económica, en su propia fila de ancho completo --- */
+  let rowCBottom = rowBBottom;
+  if(business.economicActivity){
+    const actY = rowBBottom + 18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(100);
+    doc.text('Actividad económica:', margin, actY);
+    const labelW = doc.getTextWidth('Actividad económica: ');
+    doc.setFont('helvetica','normal'); doc.setTextColor(20);
+    doc.text(business.economicActivity, margin+labelW, actY);
+    rowCBottom = actY;
+  }
+
+  y = Math.max(rowCBottom, y+70) + 20;
+  doc.setDrawColor(226,232,240); doc.setLineWidth(1); doc.line(margin, y, rightEdge, y);
+  y += 22;
+
+  /* --- Ciudad / Fecha (solo contrato), antes de Dirigido a --- */
+  if(!isCobro && !isCotizacion){
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(100);
+    doc.text('Ciudad: ', margin, y); const cw1 = doc.getTextWidth('Ciudad: ');
+    doc.setFont('helvetica','normal'); doc.setTextColor(20);
+    doc.text(business.city||'—', margin+cw1, y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(100);
+    doc.text('Fecha: ', margin+180, y); const cw2 = doc.getTextWidth('Fecha: ');
+    doc.setFont('helvetica','normal'); doc.setTextColor(20);
+    doc.text(fmtDate(d.issueDate), margin+180+cw2, y);
+    y += 26;
+  }
+
+  /* --- Dirigido a / Método de transferencia --- */
+  const colRightX = margin + contentWidth/2 + 10;
+  const dirigidoASize = (isCobro||isCotizacion) ? 8 : 12.5;
+  const clientNameSize = (isCobro||isCotizacion) ? 11 : 13;
+  const clientNameOffset = (isCobro||isCotizacion) ? 16 : 20;
+  if(isCobro||isCotizacion){ doc.setTextColor(100); doc.setFont('helvetica','bold'); doc.setFontSize(dirigidoASize); doc.text('DIRIGIDO A (CLIENTE)', margin, y); }
+  else { doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(dirigidoASize); doc.text('Dirigido a', margin, y); }
+  doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(clientNameSize);
+  doc.text(d.clientName||'—', margin, y+clientNameOffset);
+  if(d.clientId){ doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100); doc.text('ID: '+d.clientId, margin, y+clientNameOffset+13); }
+
+  let boxBottom = y+clientNameOffset;
+  if(isCobro){
+    const pm = getSelectedPaymentMethod(d.paymentMethod);
+    doc.setTextColor(100); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('MÉTODO DE TRANSFERENCIA', colRightX, y);
+    const boxW = rightEdge - colRightX;
+    const boxH = pm ? 58 : 24;
+    doc.setFillColor(243,245,248);
+    doc.roundedRect(colRightX, y+6, boxW, boxH, 6, 6, 'F');
+    if(pm){
+      doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+      doc.text(pm.entity, colRightX+10, y+22);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text((pm.subtype ? 'Cuenta '+pm.subtype : pm.type)+': '+pm.accountNumber, colRightX+10, y+35);
+      doc.setFontSize(7.5); doc.setTextColor(110);
+      doc.text('Titular: '+(pm.holder||business.name||'—'), colRightX+10, y+46);
+      doc.text('ID: '+(business.taxId||'—'), colRightX+10, y+56);
+    } else {
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110);
+      doc.text('Sin método de pago seleccionado', colRightX+10, y+21);
+    }
+    boxBottom = y + 6 + boxH;
+  } else if(isCotizacion){
+    doc.setTextColor(100); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('VALIDEZ DE LA OFERTA', colRightX, y);
+    const boxW = rightEdge - colRightX;
+    const boxH = 24;
+    doc.setFillColor(243,245,248);
+    doc.roundedRect(colRightX, y+6, boxW, boxH, 6, 6, 'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(20);
+    doc.text(d.validity || 'No especificada', colRightX+10, y+21);
+    boxBottom = y + 6 + boxH;
+  }
+
+  y = Math.max(boxBottom, y+clientNameOffset+13) + 24;
+  doc.setTextColor(20);
+
+  const printBlock = (label, text)=>{
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text(label, margin, y); y+=14;
+    doc.setFont('helvetica','normal');
+    const lines = doc.splitTextToSize(text || '—', contentWidth);
+    doc.text(lines, margin, y); y += lines.length*13 + 12;
+  };
+
+  if(isCobro || isCotizacion){
+    if(d.concept){
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text((isCotizacion?'Objeto de la cotización:':'Concepto:'), margin, y); y += 14;
+      doc.setFont('helvetica','normal');
+      const conceptLines = doc.splitTextToSize(d.concept, contentWidth);
+      doc.text(conceptLines, margin, y); y += conceptLines.length*13 + 14;
+    }
+
+    /* --- Tabla de ítems: cuadrícula real, columnas numéricas de igual ancho --- */
+    const descColWidth = 260;
+    const numColWidth = (contentWidth - descColWidth) / 3;
+    const gx = [margin, margin+descColWidth, margin+descColWidth+numColWidth, margin+descColWidth+numColWidth*2, rightEdge];
+    const lineH = 13;
+    const headerH = 24;
+
+    // Pass 1: medir cada fila (la descripción es la única que puede crecer)
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    const measuredRows = (d.items||[]).map(it=>{
+      const descLines = doc.splitTextToSize(it.description||'—', descColWidth-14);
+      const rowH = Math.max(descLines.length*lineH, 17) + 12;
+      return { it, descLines, rowH };
+    });
+
+    const tableTop = y;
+    let cumY = tableTop + headerH;
+    const rowBoundaries = [tableTop, cumY];
+    measuredRows.forEach(r=>{ cumY += r.rowH; rowBoundaries.push(cumY); });
+    const tableBottom = cumY;
+
+    // Encabezado sombreado
+    doc.setFillColor(243,245,248);
+    doc.rect(gx[0], tableTop, contentWidth, headerH, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100);
+    const headerTextY = tableTop + headerH/2 + 3;
+    doc.text('DESCRIPCIÓN DEL CONCEPTO / SERVICIO', gx[0]+7, headerTextY);
+    doc.text('CANT.', (gx[1]+gx[2])/2, headerTextY, {align:'center'});
+    doc.text('V. UNITARIO', gx[3]-7, headerTextY, {align:'right'});
+    doc.text('SUBTOTAL', gx[4]-7, headerTextY, {align:'right'});
+
+    // Filas de datos
+    let rowY = tableTop + headerH;
+    measuredRows.forEach(r=>{
+      const textY = rowY + 15;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(20);
+      doc.text(r.descLines, gx[0]+7, textY);
+      doc.text(String(r.it.qty), (gx[1]+gx[2])/2, textY, {align:'center'});
+      doc.text(fmtMoney(r.it.unitPrice), gx[3]-7, textY, {align:'right'});
+      doc.setFont('helvetica','bold');
+      doc.text(fmtMoney((r.it.qty||0)*(r.it.unitPrice||0)), gx[4]-7, textY, {align:'right'});
+      rowY += r.rowH;
+    });
+
+    // Cuadrícula: líneas horizontales, verticales y borde exterior
+    doc.setDrawColor(226,232,240); doc.setLineWidth(0.75);
+    rowBoundaries.forEach(by=>{ doc.line(gx[0], by, gx[4], by); });
+    gx.forEach(vx=>{ doc.line(vx, tableTop, vx, tableBottom); });
+    doc.setDrawColor(190,199,212); doc.setLineWidth(1);
+    doc.rect(gx[0], tableTop, contentWidth, tableBottom-tableTop);
+
+    y = tableBottom + 16;
+
+    /* --- Notas + Totales --- */
+    const notesText = isCotizacion
+      ? (d.notes || 'Sin observaciones adicionales.')
+      : 'El pago puede ser realizado por '+(d.paymentMethod?'transferencia a la cuenta indicada':'el método de pago acordado')+'. Fecha límite de pago: '+fmtDate(d.dueDate)+'.';
+    const notesLines = doc.splitTextToSize(notesText, 240);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100);
+    doc.text(isCotizacion?'NOTAS U OBSERVACIONES':'NOTAS IMPORTANTES', margin, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    doc.text(notesLines, margin, y+13);
+
+    function pdfMoneyRow(label, value, yy, labelSize, valueSize, bold){
+      doc.setFont('helvetica','bold'); doc.setFontSize(valueSize); doc.setTextColor(20);
+      doc.text(value, rightEdge, yy, {align:'right'});
+      const valueW = doc.getTextWidth(value);
+      doc.setFont('helvetica','bold'); doc.setFontSize(labelSize); doc.setTextColor(bold?20:110);
+      doc.text(label+':', rightEdge-valueW-6, yy, {align:'right'});
+    }
+
+    pdfMoneyRow('SUBTOTAL', fmtMoney(d.amount), y, 10, 13, false);
+
+    const totalY = y + 26;
+    pdfMoneyRow(isCotizacion?'TOTAL COTIZADO':'TOTAL A COBRAR', fmtMoney(d.amount), totalY, 11.5, 19, true);
+
+    const sonText = 'SON: '+amountToWords(d.amount, business.currencyWord).toUpperCase();
+    doc.setFont('helvetica','bold'); doc.setFontSize(7);
+    const sonW = doc.getTextWidth(sonText) + 16;
+    doc.setFillColor(243,245,248); doc.setTextColor(90);
+    doc.roundedRect(rightEdge-sonW, totalY+14, sonW, 16, 4, 4, 'F');
+    doc.text(sonText, rightEdge-sonW/2, totalY+25, {align:'center'});
+
+    y = Math.max(y+notesLines.length*11+10, totalY+38);
+  } else {
+    printBlock('Alcance del trabajo', d.scope);
+    printBlock('Plazos de entrega', d.delivery);
+    printBlock('Condiciones de pago', d.payTerms);
+    printBlock('Propiedad intelectual', d.ip);
+  }
+
+  if(d.includeSignature && business.signatureImage){
+    y += 20;
+    const sigColWidth = (contentWidth-30)/2;
+    const leftX = margin, rightX = margin+sigColWidth+30;
+    const imgTopY = y;
+    try{ doc.addImage(business.signatureImage, business.signatureFormat||'JPEG', leftX+sigColWidth/2-40, imgTopY, 80, 40); }catch(e){}
+    const sigLineY = imgTopY+46;
+    doc.setDrawColor(20); doc.setLineWidth(0.75);
+    doc.line(leftX+15, sigLineY, leftX+sigColWidth-15, sigLineY);
+    doc.line(rightX+15, sigLineY, rightX+sigColWidth-15, sigLineY);
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20);
+    doc.text(business.name||'—', leftX+sigColWidth/2, sigLineY+14, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100);
+    doc.text('ID: '+(business.taxId||'—'), leftX+sigColWidth/2, sigLineY+26, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(150);
+    doc.text('FIRMA DE TITULAR', leftX+sigColWidth/2, sigLineY+40, {align:'center'});
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100);
+    doc.text('Nombre: ________________________', rightX+sigColWidth/2, sigLineY+14, {align:'center'});
+    doc.text('Identificación: ________________________', rightX+sigColWidth/2, sigLineY+26, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(150);
+    doc.text('FIRMA ACEPTANTE', rightX+sigColWidth/2, sigLineY+40, {align:'center'});
+
+    y = sigLineY+50;
+  }
+
+  if(d.voided){
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({opacity:0.35}));
+    doc.setTextColor(179,66,58);
+    doc.setFont('helvetica','bold'); doc.setFontSize(60);
+    doc.text('ANULADO', 306, 420, {align:'center', angle:20});
+    doc.restoreGraphicsState();
+  }
+
+  doc.setFontSize(8); doc.setTextColor(140);
+  const footerLines = doc.splitTextToSize('Documento generado con Billfolio. No constituye un documento tributario oficial. Verifica los requisitos legales de tu país antes de usarlo con fines fiscales.', contentWidth);
+  doc.text(footerLines, margin, 752);
+
+  const filePrefix = isCobro ? 'cuenta-cobro-' : (isCotizacion ? 'cotizacion-' : 'contrato-');
+  doc.save(filePrefix+d.clientName.replace(/\\s+/g,'_')+'.pdf');
+}
+
+/* ============ HISTORIAL ============ */
+async function loadDocuments(){
+  allDocuments = (await idbGetAll('documents')).sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function renderHistorial(){
+  const el = document.getElementById('historial-list');
+  if(allDocuments.length===0){
+    el.innerHTML = '<div class="empty">Todavía no has generado ningún documento.</div>';
+    return;
+  }
+  const FREE_LIMIT = 5;
+  const visibleDocs = business.unlocked ? allDocuments : allDocuments.slice(0, FREE_LIMIT);
+  const hiddenCount = allDocuments.length - visibleDocs.length;
+
+  el.innerHTML = visibleDocs.map(d=>{
+    const isQuote = d.type==='cotizacion';
+    const pillClass = d.type==='cobro' ? 'pill-cobro' : (isQuote ? 'pill-cotizacion' : 'pill-contrato');
+    const pillLabel = d.type==='cobro' ? 'Cuenta de cobro' : (isQuote ? 'Cotización' : 'Contrato');
+    const amountStr = (d.type==='cobro' || isQuote) ? fmtMoney(d.amount) : '—';
+    const costBtn = (d.type==='cobro' && !d.voided)
+      ? (d.cost!=null
+          ? '<span style="font-size:10.5px;color:var(--ink-soft);margin-right:8px;">Costo: '+fmtMoney(d.cost)+'</span><span style="cursor:pointer;font-size:10.5px;color:var(--forest);text-decoration:underline;" onclick="promptEditCost('+d.id+')">editar</span>'
+          : '<span style="cursor:pointer;font-size:10.5px;color:var(--forest);text-decoration:underline;" onclick="promptEditCost('+d.id+')">+ agregar costo</span>')
+      : '';
+    const editBtn = !d.voided
+      ? '<button class="btn btn-ghost" style="padding:6px 10px;font-size:10.5px;" onclick="requestEditDocument('+d.id+')">✏️ Editar'+(business.unlocked?'':' 🔒')+'</button>' : '';
+    const voidBtn = '<button class="btn btn-ghost" style="padding:6px 10px;font-size:10.5px;color:'+(d.voided?'var(--forest)':'var(--danger)')+';" onclick="toggleVoidDocument('+d.id+')">'+(d.voided?'↩️ Reactivar':'🚫 Anular')+'</button>';
+    const deleteQuoteBtn = (isQuote && !d.completed)
+      ? '<button class="btn btn-ghost" style="padding:6px 10px;font-size:10.5px;color:var(--danger);" onclick="deleteQuotePermanently('+d.id+')">🗑️ Eliminar</button>' : '';
+    const pdfBtn = '<button class="btn btn-ghost" style="padding:6px 10px;font-size:10.5px;" onclick="redownloadDocument('+d.id+')">📄 Ver / Descargar PDF</button>';
+    const voidedBadge = d.voided ? ' <span class="pill" style="background:rgba(179,66,58,.12);color:var(--danger);">ANULADO</span>' : '';
+    const quoteStatusBadge = isQuote
+      ? (d.completed
+          ? ' <span class="pill" style="background:rgba(29,78,216,.12);color:var(--forest);">COMPLETADA</span>'
+          : ' <span class="pill" style="background:rgba(201,162,39,.18);color:var(--brass-deep);">PENDIENTE</span>')
+      : '';
+    const actionsRow = isQuote ? (pdfBtn+editBtn+deleteQuoteBtn) : (pdfBtn+editBtn+voidBtn);
+    return '<div class="hist-item" style="'+(d.voided?'opacity:.65;':'')+'">'
+      + '<div class="hist-main"><span class="hist-client" style="'+(d.voided?'text-decoration:line-through;':'')+'">'+d.clientName+'</span>'
+      + '<span class="hist-meta">'+(d.docNumber?d.docNumber+' · ':'')+fmtDate(d.issueDate)+' · <span class="pill '+pillClass+'">'+pillLabel+'</span>'+voidedBadge+quoteStatusBadge+'</span>'
+      + (costBtn ? '<span class="hist-meta">'+costBtn+'</span>' : '')
+      + '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">'+actionsRow+'</div>'
+      + '</div>'
+      + '<div class="hist-amount" style="'+(d.voided?'text-decoration:line-through;color:var(--ink-soft);':'')+'">'+amountStr+'</div>'
+      + '</div>';
+  }).join('');
+
+  if(hiddenCount > 0){
+    el.innerHTML += '<div style="padding:16px;text-align:center;font-size:12px;color:var(--ink-soft);">'
+      + '+'+hiddenCount+' documento'+(hiddenCount===1?'':'s')+' más en tu historial completo. '
+      + '<span style="cursor:pointer;color:var(--forest);text-decoration:underline;" onclick="goTo(\'setup\')">Desbloquear Billfolio Pro</span></div>';
+  }
+}
+
+function promptEditCost(id){
+  const d = allDocuments.find(doc=>doc.id===id);
+  if(!d) return;
+  showConfirmModal(
+    '¿Cuánto te costó este servicio/producto? (déjalo vacío para quitar el dato)',
+    async (input)=>{
+      if(input===undefined) return;
+      d.cost = input.trim()==='' ? null : Number(input);
+      await idbPut('documents', d);
+      await loadDocuments();
+      renderHistorial();
+    },
+    {title:'Costo del servicio', acceptText:'Guardar', showInput:true, inputType:'number', inputValue: d.cost!=null?d.cost:'', inputPlaceholder:'Ej: 200000'}
+  );
+}
+
+/* ============ INFORMES ============ */
+function renderInformes(){
+  const now = new Date();
+  const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23,59,59);
+
+  const cobros = allDocuments.filter(d=>d.type==='cobro' && d.amount && !d.voided);
+
+  const sumBetween = (a,b) => cobros.filter(d=>{
+    const dt = new Date(d.createdAt);
+    return dt >= a && dt <= b;
+  }).reduce((s,d)=> s + Number(d.amount||0), 0);
+
+  const weekTotal = sumBetween(startOfWeek, now);
+  const monthTotal = sumBetween(startOfMonth, now);
+  const lastMonthTotal = sumBetween(startOfLastMonth, endOfLastMonth);
+  const delta = lastMonthTotal>0 ? Math.round(((monthTotal-lastMonthTotal)/lastMonthTotal)*100) : null;
+
+  const clientStats = {};
+  cobros.forEach(d=>{
+    if(!clientStats[d.clientName]) clientStats[d.clientName] = {total:0,count:0};
+    clientStats[d.clientName].total += Number(d.amount||0);
+    clientStats[d.clientName].count += 1;
+  });
+  const topClientEntry = Object.entries(clientStats).sort((a,b)=>b[1].total-a[1].total)[0];
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Esta semana</div><div class="stat-value">${fmtMoney(weekTotal)}</div></div>
+    <div class="stat-card"><div class="stat-label">Este mes</div><div class="stat-value">${fmtMoney(monthTotal)}</div>
+      ${delta!==null ? '<div class="stat-delta '+(delta>=0?'delta-up':'delta-down')+'">'+(delta>=0?'▲ ':'▼ ')+Math.abs(delta)+'% vs. mes anterior</div>' : ''}
+    </div>
+    <div class="stat-card"><div class="stat-label">Mejor cliente</div><div class="stat-value" style="font-size:16px;">${topClientEntry? topClientEntry[0] : '—'}</div>
+      ${topClientEntry? '<div class="stat-delta delta-up">'+fmtMoney(topClientEntry[1].total)+' · '+topClientEntry[1].count+' compra'+(topClientEntry[1].count===1?'':'s')+'</div>' : ''}
+    </div>
+  `;
+
+  /* --- Filtro de fechas --- */
+  const fromInput = document.getElementById('report-from');
+  const toInput = document.getElementById('report-to');
+  if(!fromInput.value){
+    const defaultFrom = new Date(now); defaultFrom.setDate(now.getDate()-41);
+    fromInput.value = defaultFrom.toISOString().slice(0,10);
+  }
+  if(!toInput.value) toInput.value = now.toISOString().slice(0,10);
+  const rangeFrom = new Date(fromInput.value+'T00:00:00');
+  const rangeTo = new Date(toInput.value+'T23:59:59');
+  const spanDays = Math.max(1, Math.round((rangeTo-rangeFrom)/86400000));
+
+  const cobrosInRange = cobros.filter(d=>{
+    const dt = new Date(d.createdAt);
+    return dt >= rangeFrom && dt <= rangeTo;
+  }).sort((a,b)=> new Date(a.createdAt)-new Date(b.createdAt));
+
+  /* --- Gráfico de línea con sombreado --- */
+  let labels = [], values = [];
+  if(spanDays <= 31){
+    document.getElementById('chart-title').textContent = 'Facturación por día en el periodo seleccionado';
+    for(let i=0;i<spanDays;i++){
+      const dStart = new Date(rangeFrom); dStart.setDate(rangeFrom.getDate()+i);
+      const dEnd = new Date(dStart); dEnd.setHours(23,59,59);
+      labels.push(dStart.toLocaleDateString('es',{day:'2-digit',month:'2-digit'}));
+      values.push(sumBetween(dStart, dEnd));
+    }
+  } else {
+    document.getElementById('chart-title').textContent = 'Facturación por semana en el periodo seleccionado';
+    const weeks = Math.ceil(spanDays/7);
+    for(let i=0;i<weeks;i++){
+      const wStart = new Date(rangeFrom); wStart.setDate(rangeFrom.getDate()+i*7);
+      const wEnd = new Date(wStart); wEnd.setDate(wStart.getDate()+6); wEnd.setHours(23,59,59);
+      labels.push(wStart.toLocaleDateString('es',{day:'2-digit',month:'2-digit'}));
+      values.push(sumBetween(wStart, wEnd > rangeTo ? rangeTo : wEnd));
+    }
+  }
+
+  const ctx = document.getElementById('reportChart');
+  if(window._chart) window._chart.destroy();
+  const gradient = ctx.getContext('2d').createLinearGradient(0,0,0,220);
+  gradient.addColorStop(0,'rgba(29,78,216,.32)');
+  gradient.addColorStop(1,'rgba(29,78,216,0)');
+  window._chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[{
+      data: values, borderColor:'#1D4ED8', backgroundColor:gradient, fill:true,
+      tension:.35, pointRadius:3, pointBackgroundColor:'#1D4ED8', pointBorderColor:'#fff', pointBorderWidth:1.5, borderWidth:2.5
+    }] },
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ grid:{color:'#E7EAEE'}, ticks:{color:'#5C6773', callback:v=>(business.currencySymbol||'$')+' '+v.toLocaleString('es')} },
+        x:{ grid:{display:false}, ticks:{color:'#5C6773'} }
+      }
+    }
+  });
+
+  /* --- Tabla de rentabilidad (opcional según si hay costos registrados) --- */
+  const tbody = document.getElementById('profit-tbody');
+  const summaryEl = document.getElementById('profit-summary');
+  if(cobrosInRange.length===0){
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:16px 4px;color:var(--ink-soft);">No hay documentos de cuenta de cobro en este periodo.</td></tr>';
+    summaryEl.innerHTML = '';
+    return;
+  }
+  let totalRevenue = 0, totalCost = 0, anyCost = false;
+  tbody.innerHTML = cobrosInRange.map(d=>{
+    totalRevenue += Number(d.amount||0);
+    let costCell, marginCell;
+    if(d.cost!=null){
+      anyCost = true;
+      totalCost += Number(d.cost);
+      const margin = Number(d.amount) - Number(d.cost);
+      const marginPct = d.amount>0 ? Math.round((margin/d.amount)*100) : 0;
+      costCell = fmtMoney(d.cost);
+      marginCell = '<span style="color:'+(margin>=0?'var(--forest)':'var(--danger)')+';font-weight:600;">'+fmtMoney(margin)+' ('+marginPct+'%)</span>';
+    } else {
+      costCell = '<span style="cursor:pointer;color:var(--forest);text-decoration:underline;font-size:11px;" onclick="promptEditCost('+d.id+')">+ agregar</span>';
+      marginCell = '—';
+    }
+    return '<tr style="border-bottom:1px solid var(--rule);">'
+      + '<td style="padding:6px 4px;">'+d.clientName+'</td>'
+      + '<td style="padding:6px 4px;color:var(--ink-soft);">'+fmtDate(d.issueDate)+'</td>'
+      + '<td style="padding:6px 4px;text-align:right;font-family:\'IBM Plex Mono\',monospace;">'+fmtMoney(d.amount)+'</td>'
+      + '<td style="padding:6px 4px;text-align:right;">'+costCell+'</td>'
+      + '<td style="padding:6px 4px;text-align:right;">'+marginCell+'</td>'
+      + '</tr>';
+  }).join('');
+
+  if(anyCost){
+    const totalMargin = totalRevenue - totalCost;
+    const totalMarginPct = totalRevenue>0 ? Math.round((totalMargin/totalRevenue)*100) : 0;
+    summaryEl.innerHTML = 'Margen total del periodo (solo documentos con costo registrado): '
+      + '<strong style="color:'+(totalMargin>=0?'var(--forest)':'var(--danger)')+';">'+fmtMoney(totalMargin)+' ('+totalMarginPct+'% de rentabilidad)</strong>';
+  } else {
+    summaryEl.innerHTML = '';
+  }
+}
+
+/* ============ RESPALDO ============ */
+async function exportBackup(){
+  const biz = await idbGet('business','profile');
+  const docs = await idbGetAll('documents');
+  const payload = { exportedAt:new Date().toISOString(), business:biz||null, documents:docs };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'billfolio-respaldo-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  business.lastBackupAt = new Date().toISOString();
+  business.backupSnoozeUntil = null;
+  await idbPut('business', business);
+  checkBackupReminder();
+  showToast('✓ Respaldo descargado');
+}
+
+function importBackup(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    let payload;
+    try{
+      payload = JSON.parse(e.target.result);
+    }catch(err){
+      appAlert('No se pudo leer el archivo de respaldo. Verifica que sea un archivo exportado desde Billfolio.');
+      return;
+    }
+    showConfirmModal(
+      'Esto va a reemplazar la información actual de este dispositivo con la del respaldo. ¿Continuar?',
+      async ()=>{
+        await idbClear('documents');
+        if(payload.business){ await idbPut('business', payload.business); }
+        if(Array.isArray(payload.documents)){
+          for(const d of payload.documents){ await idbPut('documents', d); }
+        }
+        await loadBusiness();
+        await loadDocuments();
+        checkBackupReminder();
+        showToast('✓ Respaldo importado con éxito');
+      },
+      {title:'Importar respaldo', acceptText:'Sí, reemplazar'}
+    );
+  };
+  reader.readAsText(file);
+}
+
+/* ============ RECORDATORIO DE RESPALDO ============ */
+const BACKUP_REMINDER_DAYS = 7;
+const BACKUP_SNOOZE_DAYS = 3;
+
+function checkBackupReminder(){
+  const banner = document.getElementById('backup-reminder');
+  if(!banner) return;
+  const now = new Date();
+  const hasData = allDocuments.length > 0;
+  const daysSince = (iso)=> iso ? (now - new Date(iso)) / 86400000 : Infinity;
+  const neverBackedUp = !business.lastBackupAt;
+  const staleBackup = daysSince(business.lastBackupAt) >= BACKUP_REMINDER_DAYS;
+  const snoozed = business.backupSnoozeUntil && new Date(business.backupSnoozeUntil) > now;
+
+  if(hasData && (neverBackedUp || staleBackup) && !snoozed){
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+async function snoozeBackupReminder(){
+  const snoozeUntil = new Date();
+  snoozeUntil.setDate(snoozeUntil.getDate() + BACKUP_SNOOZE_DAYS);
+  business.backupSnoozeUntil = snoozeUntil.toISOString();
+  await idbPut('business', business);
+  checkBackupReminder();
+}
+
+/* ============ TOAST ============ */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ============ INIT ============ */
+async function migrateMissingDocNumbers(){
+  const missing = allDocuments.filter(d=>!d.docNumber).sort((a,b)=> new Date(a.createdAt)-new Date(b.createdAt));
+  if(missing.length===0) return;
+  for(const d of missing){
+    d.docNumber = await consumeDocNumber(d.type);
+    await idbPut('documents', d);
+  }
+  await loadDocuments();
+}
+
+async function startApp(){
+  await showAppShell();
+  await loadBusiness();
+  await loadDocuments();
+  await migrateMissingDocNumbers();
+  checkBackupReminder();
+  applyUnlockRestrictions();
+  initSignatureCanvas();
+  switchDocType(currentDocType);
+}
+
+(async function init(){
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  if(session && session.user){
+    currentUser = session.user;
+    await startApp();
+  } else {
+    showAuthScreen();
+  }
+
+  supabaseClient.auth.onAuthStateChange(async (event, session)=>{
+    if(event === 'SIGNED_IN' && session && session.user){
+      const wasSignedOut = !currentUser;
+      currentUser = session.user;
+      if(wasSignedOut){ await startApp(); }
+    } else if(event === 'SIGNED_OUT'){
+      currentUser = null;
+      showAuthScreen();
+    }
+  });
+})();
+</script>
+</body>
+</html>
